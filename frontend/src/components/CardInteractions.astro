@@ -582,28 +582,53 @@
       }, index * 100);
     });
     
-    // Hide container and remove cards with smooth slide-up animation
+    // Flip-disappear-reappear animation for remaining cards
     setTimeout(() => {
+      // 1. Get all remaining card containers that will move
+      const allContainers = Array.from(document.querySelectorAll('.cards-container'));
+      const currentIndex = allContainers.indexOf(cardsContainer);
+      const remainingContainers = allContainers.slice(currentIndex + 1);
+      
+      // 2. Start flip-out animation for remaining cards
+      if (remainingContainers.length > 0) {
+        remainingContainers.forEach((container, index) => {
+          const cards = container.querySelectorAll('.card');
+          cards.forEach((card, cardIndex) => {
+            setTimeout(() => {
+              card.style.transition = 'transform 0.3s ease-in, opacity 0.3s ease-in';
+              card.style.transform = 'rotateY(90deg) scale(0.8)';
+              card.style.opacity = '0';
+            }, cardIndex * 50);
+          });
+        });
+      }
+      
+      // 3. Remove current container
+      cardsContainer.style.transition = 'opacity 0.3s ease-out';
       cardsContainer.style.opacity = '0';
-      cardsContainer.style.transform = 'translateY(-20px)';
-      cardsContainer.style.maxHeight = cardsContainer.offsetHeight + 'px';
       
-      // Start the height collapse animation
-      setTimeout(() => {
-        cardsContainer.style.maxHeight = '0px';
-        cardsContainer.style.marginTop = '0px';
-        cardsContainer.style.marginBottom = '0px';
-        cardsContainer.style.paddingTop = '0px';
-        cardsContainer.style.paddingBottom = '0px';
-      }, 100);
-      
-      // Remove the container completely after animation
       setTimeout(() => {
         if (cardsContainer.parentNode) {
           cardsContainer.parentNode.removeChild(cardsContainer);
         }
         cardContainers.delete(category);
-      }, 600);
+        
+        // 4. After DOM removal, flip remaining cards back in at new positions
+        if (remainingContainers.length > 0) {
+          setTimeout(() => {
+            remainingContainers.forEach((container, index) => {
+              const cards = container.querySelectorAll('.card');
+              cards.forEach((card, cardIndex) => {
+                setTimeout(() => {
+                  card.style.transition = 'transform 0.4s ease-out, opacity 0.4s ease-out';
+                  card.style.transform = 'rotateY(0deg) scale(1)';
+                  card.style.opacity = '1';
+                }, cardIndex * 50);
+              });
+            });
+          }, 100);
+        }
+      }, 300);
     }, cards.length * 100 + 200);
   }
   
