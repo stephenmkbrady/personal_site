@@ -55,20 +55,22 @@ const { title } = Astro.props;
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, 140px);
     gap: 40px;
     margin-bottom: 50px;
     padding: 40px;
     width: 100%;
     box-sizing: border-box;
+    justify-content: center;
   }
 
 
   @media (max-width: 768px) {
     .grid {
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, 140px);
       gap: 30px;
       padding: 30px;
+      justify-content: center;
     }
   }
 
@@ -78,9 +80,10 @@ const { title } = Astro.props;
     }
 
     .grid {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, 140px);
       gap: 20px;
       padding: 20px;
+      justify-content: center;
     }
     
     .container {

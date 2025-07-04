@@ -8,7 +8,6 @@ pub struct ContentMetadata {
     pub date: String,
     pub tags: Vec<String>,
     pub description: String,
-    #[serde(default)]
     pub image: Option<String>,
 }
 
