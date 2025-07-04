@@ -53,7 +53,7 @@ const { title } = Astro.props;
     box-sizing: border-box;
   }
 
-  .grid {
+  .grid, .button-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, 140px);
     gap: 40px;
@@ -62,6 +62,13 @@ const { title } = Astro.props;
     width: 100%;
     box-sizing: border-box;
     justify-content: center;
+  }
+
+  .button-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    max-width: 600px;
+    margin: 0 auto 50px auto;
+    gap: 20px;
   }
 
 

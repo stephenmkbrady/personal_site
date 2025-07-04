@@ -1,15 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import CardStack from '../components/CardStack.astro';
+import CategoryButton from '../components/CategoryButton.astro';
 import Marquee from '../components/Marquee.astro';
 import TriangleRain from '../components/TriangleRain.astro';
 import CardInteractions from '../components/CardInteractions.astro';
+import SearchBox from '../components/SearchBox.astro';
 
-// Define the content categories that will have CardStacks
+// Define the content categories
 const contentCategories = [
-  { name: 'Projects', key: 'project', type: 'holographic' },
-  { name: 'Blog', key: 'blog', type: 'normal' },
-  { name: 'GitHub', key: 'github', type: 'holographic' }
+  { name: 'Projects', key: 'project' },
+  { name: 'Blog', key: 'blog' },
+  { name: 'GitHub', key: 'github' }
 ];
 ---
 
@@ -19,12 +20,12 @@ const contentCategories = [
   <TriangleRain />
   
   <div class="container">
-    <div class="grid" id="grid">
+    <SearchBox />
+    <div class="button-grid" id="grid">
       {contentCategories.map((category) => (
-        <CardStack 
+        <CategoryButton 
           text={category.name} 
           category={category.key}
-          type={category.type as 'normal' | 'holographic'}
         />
       ))}
     </div>

@@ -396,35 +396,35 @@
     });
   }
 
-  // CardStack functionality
-  function handleCardStackClick(stackElement: HTMLElement) {
-    const category = stackElement.getAttribute('data-category');
-    console.log('handleCardStackClick called with category:', category);
+  // Category button functionality
+  function handleCategoryButtonClick(buttonElement: HTMLElement) {
+    const category = buttonElement.getAttribute('data-category');
+    console.log('handleCategoryButtonClick called with category:', category);
     
     if (!category) {
-      console.error('No category found on stack element');
+      console.error('No category found on button element');
       return;
     }
     
     const isActive = activeCardStacks.has(category);
-    console.log('Stack is active:', isActive);
+    console.log('Category is active:', isActive);
     
     if (isActive) {
-      console.log('Returning cards to stack');
-      returnCardsToStack(category, stackElement);
+      console.log('Hiding cards for category');
+      hideCardsForCategory(category, buttonElement);
     } else {
-      console.log('Dealing cards from stack');
-      dealCardsFromStack(category, stackElement);
+      console.log('Showing cards for category');
+      dealCardsFromCategory(category, buttonElement);
     }
   }
   
-  async function dealCardsFromStack(category: string, stackElement: HTMLElement) {
-    console.log('2. dealCardsFromStack - DOM ready:', document.readyState);
+  async function dealCardsFromCategory(category: string, buttonElement: HTMLElement) {
+    console.log('2. dealCardsFromCategory - DOM ready:', document.readyState);
     console.log('3. Grid element found:', !!document.getElementById('grid'));
-    console.log('3. Stack element:', stackElement);
+    console.log('3. Button element:', buttonElement);
     
     activeCardStacks.add(category);
-    stackElement.classList.add('active');
+    buttonElement.classList.add('active');
     
     // Create cards container after the grid
     const grid = document.getElementById('grid');
@@ -449,6 +449,7 @@
         transform: translateY(20px);
         transition: all 0.5s ease, max-height 0.5s ease;
         justify-content: center;
+        justify-items: center;
         width: calc(100% - 40px);
         overflow: visible;
       `;
@@ -495,13 +496,13 @@
           const card = createCard(cardData, category, index);
           cardsContainer.appendChild(card);
           
-          // Animate card from stack position
-          const stackRect = stackElement.getBoundingClientRect();
+          // Animate card from button position
+          const buttonRect = buttonElement.getBoundingClientRect();
           const containerRect = cardsContainer.getBoundingClientRect();
           
-          // Calculate initial position relative to stack
-          const initialX = stackRect.left - containerRect.left;
-          const initialY = stackRect.top - containerRect.top;
+          // Calculate initial position relative to button
+          const initialX = buttonRect.left - containerRect.left;
+          const initialY = buttonRect.top - containerRect.top;
           
           card.style.transform = `translate(${initialX}px, ${initialY}px) scale(0.5) rotateY(180deg)`;
           card.style.opacity = '0';
@@ -533,11 +534,11 @@
           const card = createCard(cardData, category, index);
           cardsContainer.appendChild(card);
           
-          const stackRect = stackElement.getBoundingClientRect();
+          const buttonRect = buttonElement.getBoundingClientRect();
           const containerRect = cardsContainer.getBoundingClientRect();
           
-          const initialX = stackRect.left - containerRect.left;
-          const initialY = stackRect.top - containerRect.top;
+          const initialX = buttonRect.left - containerRect.left;
+          const initialY = buttonRect.top - containerRect.top;
           
           card.style.transform = `translate(${initialX}px, ${initialY}px) scale(0.5) rotateY(180deg)`;
           card.style.opacity = '0';
@@ -558,23 +559,23 @@
     }, 100);
   }
   
-  function returnCardsToStack(category: string, stackElement: HTMLElement) {
+  function hideCardsForCategory(category: string, buttonElement: HTMLElement) {
     activeCardStacks.delete(category);
-    stackElement.classList.remove('active');
+    buttonElement.classList.remove('active');
     
     const cardsContainer = cardContainers.get(category);
     if (!cardsContainer) return;
     
     const cards = cardsContainer.querySelectorAll('.card');
-    const stackRect = stackElement.getBoundingClientRect();
+    const buttonRect = buttonElement.getBoundingClientRect();
     const containerRect = cardsContainer.getBoundingClientRect();
     
     cards.forEach((card, index) => {
       const cardElement = card as HTMLElement;
       
       setTimeout(() => {
-        const initialX = stackRect.left - containerRect.left;
-        const initialY = stackRect.top - containerRect.top;
+        const initialX = buttonRect.left - containerRect.left;
+        const initialY = buttonRect.top - containerRect.top;
         
         cardElement.style.transition = 'all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
         cardElement.style.transform = `translate(${initialX}px, ${initialY}px) scale(0.3) rotateY(180deg)`;
@@ -774,30 +775,37 @@
     return card;
   }
   
-  function initializeCardStacks() {
-    const cardStacks = document.querySelectorAll('.card-stack:not([data-initialized])');
-    console.log('Found', cardStacks.length, 'card stacks to initialize');
+  function initializeCategoryButtons() {
+    const categoryButtons = document.querySelectorAll('.category-button:not([data-initialized])');
+    console.log('Found', categoryButtons.length, 'category buttons to initialize');
     
-    cardStacks.forEach(stack => {
-      const stackEl = stack as HTMLElement;
-      const category = stackEl.getAttribute('data-category');
-      console.log('Initializing stack with category:', category);
+    categoryButtons.forEach((button, index) => {
+      const buttonEl = button as HTMLElement;
+      const category = buttonEl.getAttribute('data-category');
+      console.log('Initializing button with category:', category);
       
-      stackEl.setAttribute('data-initialized', 'true');
+      buttonEl.setAttribute('data-initialized', 'true');
       
-      stackEl.addEventListener('click', (e) => {
-        console.log('CardStack clicked:', category);
+      buttonEl.addEventListener('click', (e) => {
+        console.log('Category button clicked:', category);
         e.preventDefault();
         e.stopPropagation();
-        handleCardStackClick(stackEl);
+        handleCategoryButtonClick(buttonEl);
       });
+      
+      // Auto-deal cards for each category with a slight delay
+      if (category) {
+        setTimeout(() => {
+          dealCardsFromCategory(category, buttonEl);
+        }, index * 500); // Stagger the card dealing
+      }
     });
   }
 
   // Run immediately and also on DOM ready
   function init() {
     initializeCards();
-    initializeCardStacks();
+    initializeCategoryButtons();
     console.log('CardInteractions initialized');
   }
   

@@ -1,0 +1,54 @@
+---
+interface Props {
+  text: string;
+  category: string;
+}
+
+const { text, category } = Astro.props;
+---
+
+<button class="category-button active" data-category={category}>
+  {text}
+</button>
+
+<style>
+  .category-button {
+    background: linear-gradient(135deg, #ffd700, #b8860b);
+    border: 2px solid #daa520;
+    border-radius: 8px;
+    color: #000;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo UI', 'MS PGothic', 'Osaka', sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    min-width: 120px;
+  }
+
+  .category-button:hover {
+    background: linear-gradient(135deg, #ffed4e, #daa520);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    border-color: #b8860b;
+  }
+
+  .category-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .category-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.4);
+  }
+
+  .category-button.active {
+    background: linear-gradient(135deg, #b8860b, #daa520);
+    border-color: #8b6914;
+    color: #fff;
+  }
+</style>
