@@ -1,0 +1,92 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Card from '../components/Card.astro';
+import CardStack from '../components/CardStack.astro';
+import Marquee from '../components/Marquee.astro';
+import TriangleRain from '../components/TriangleRain.astro';
+import CardInteractions from '../components/CardInteractions.astro';
+---
+
+<Layout title="Final - Raining Pyramids Tech Cards">
+  <Marquee text="This is a test, for a marquee scrolling text feature. This should be able to have text" />
+  
+  <TriangleRain />
+  
+  <div class="container">
+    <div class="grid" id="grid">
+      <CardStack />
+      
+      <Card
+        image="https://images.pexels.com/photos/2153201/pexels-photo-2153201.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Quantum computing unlocks unprecedented computational power"
+        type="normal"
+        loading="eager"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/7567553/pexels-photo-7567553.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Blockchain technology revolutionizes digital trust and security"
+        type="holographic"
+        loading="eager"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/60504/security-protection-anti-virus-software-60504.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Advanced cybersecurity shields against evolving digital threats"
+        type="normal"
+        loading="eager"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/3761264/pexels-photo-3761264.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Immersive reality blurs the line between digital and physical"
+        type="normal"
+        loading="eager"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/442150/pexels-photo-442150.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Internet of Things connects everything in smart ecosystems"
+        type="normal"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/325229/pexels-photo-325229.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Cloud infrastructure scales limitlessly across global networks"
+        type="holographic"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/590020/pexels-photo-590020.jpg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Big data analytics transforms raw information into insights"
+        type="normal"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Machine learning algorithms evolve through pattern recognition"
+        type="normal"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/4246019/pexels-photo-4246019.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="5G networks enable ultra-fast wireless communication worldwide"
+        type="normal"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Edge computing brings processing power closer to data sources"
+        type="holographic"
+      />
+      
+      <Card
+        image="https://images.pexels.com/photos/159298/gears-cogs-machine-machinery-159298.jpeg?auto=compress&cs=tinysrgb&w=400&h=533&fit=crop"
+        text="Digital transformation reshapes industries through innovation"
+        type="holographic"
+      />
+    </div>
+  </div>
+  
+  <CardInteractions />
+</Layout>

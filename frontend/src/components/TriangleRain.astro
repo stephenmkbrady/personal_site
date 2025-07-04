@@ -1,0 +1,309 @@
+---
+// This component handles the animated falling triangles background
+---
+
+<div class="triangle-container" id="triangleContainer"></div>
+
+<style>
+  .triangle-container {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 80px);
+    pointer-events: none;
+    perspective: 1000px;
+    z-index: -1;
+  }
+
+  .triangle {
+    position: absolute;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+    animation: fall linear infinite;
+  }
+
+  .triangle-1 {
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-bottom: 35px solid #ffd700;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6));
+    animation-duration: 8s;
+  }
+
+  .triangle-2 {
+    border-left: 25px solid transparent;
+    border-right: 25px solid transparent;
+    border-bottom: 40px solid #ffb347;
+    filter: drop-shadow(0 0 8px rgba(255, 179, 71, 0.7));
+    animation-duration: 10s;
+  }
+
+  .triangle-3 {
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-bottom: 25px solid #daa520;
+    filter: drop-shadow(0 0 4px rgba(218, 165, 32, 0.5));
+    animation-duration: 12s;
+  }
+
+  .triangle-4 {
+    border-left: 30px solid transparent;
+    border-right: 30px solid transparent;
+    border-bottom: 50px solid #b8860b;
+    filter: drop-shadow(0 0 10px rgba(184, 134, 11, 0.8));
+    animation-duration: 9s;
+  }
+
+  .triangle-5 {
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-bottom: 30px solid #ffa500;
+    filter: drop-shadow(0 0 6px rgba(255, 165, 0, 0.6));
+    animation-duration: 11s;
+  }
+
+  .triangle.lit {
+    animation: fallWithLight linear infinite;
+  }
+
+  .triangle-1.lit {
+    border-bottom-color: #ffff00;
+    filter: drop-shadow(0 0 15px rgba(255, 255, 0, 0.9)) brightness(1.5);
+  }
+
+  .triangle-2.lit {
+    border-bottom-color: #ffc649;
+    filter: drop-shadow(0 0 20px rgba(255, 198, 73, 0.9)) brightness(1.4);
+  }
+
+  .triangle-3.lit {
+    border-bottom-color: #f0e68c;
+    filter: drop-shadow(0 0 12px rgba(240, 230, 140, 0.8)) brightness(1.3);
+  }
+
+  .triangle-4.lit {
+    border-bottom-color: #cd853f;
+    filter: drop-shadow(0 0 25px rgba(205, 133, 63, 0.9)) brightness(1.6);
+  }
+
+  .triangle-5.lit {
+    border-bottom-color: #ffb84d;
+    filter: drop-shadow(0 0 18px rgba(255, 184, 77, 0.8)) brightness(1.4);
+  }
+
+  @keyframes fall {
+    0% {
+      transform: translateY(-100px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(calc(100vh - 80px + 100px)) rotateX(360deg) rotateY(180deg) rotateZ(90deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes fallWithLight {
+    0% {
+      transform: translateY(-100px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    20% {
+      filter: brightness(1.2);
+    }
+    30% {
+      filter: brightness(1.8);
+    }
+    40% {
+      filter: brightness(1.1);
+    }
+    50% {
+      filter: brightness(1.5);
+    }
+    60% {
+      filter: brightness(1.3);
+    }
+    70% {
+      filter: brightness(1.7);
+    }
+    80% {
+      filter: brightness(1.2);
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(calc(100vh - 80px + 100px)) rotateX(360deg) rotateY(180deg) rotateZ(90deg);
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  const triangleContainer = document.getElementById('triangleContainer');
+  const triangleTypes = ['triangle-1', 'triangle-2', 'triangle-3', 'triangle-4', 'triangle-5'];
+  
+  function createTriangle() {
+    if (!triangleContainer) return;
+    
+    const triangle = document.createElement('div');
+    triangle.className = 'triangle';
+    
+    const triangleType = triangleTypes[Math.floor(Math.random() * triangleTypes.length)];
+    triangle.classList.add(triangleType);
+    
+    const isLit = Math.random() < 0.3;
+    if (isLit) {
+      triangle.classList.add('lit');
+    }
+    
+    // Apply base triangle styles
+    triangle.style.cssText = `
+      position: absolute;
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+      animation: ${isLit ? 'fallWithLight' : 'fall'} linear infinite;
+      left: ${Math.random() * 100}%;
+      animation-delay: 0s;
+      transform: rotateZ(${Math.random() * 360}deg);
+    `;
+    
+    // Apply triangle type-specific styles
+    const triangleStyles = {
+      'triangle-1': {
+        borderLeft: '20px solid transparent',
+        borderRight: '20px solid transparent',
+        borderBottom: isLit ? '35px solid #ffff00' : '35px solid #ffd700',
+        filter: isLit ? 'drop-shadow(0 0 15px rgba(255, 255, 0, 0.9)) brightness(1.5)' : 'drop-shadow(0 0 5px rgba(255, 215, 0, 0.6))',
+        animationDuration: '8s'
+      },
+      'triangle-2': {
+        borderLeft: '25px solid transparent',
+        borderRight: '25px solid transparent',
+        borderBottom: isLit ? '40px solid #ffc649' : '40px solid #ffb347',
+        filter: isLit ? 'drop-shadow(0 0 20px rgba(255, 198, 73, 0.9)) brightness(1.4)' : 'drop-shadow(0 0 8px rgba(255, 179, 71, 0.7))',
+        animationDuration: '10s'
+      },
+      'triangle-3': {
+        borderLeft: '15px solid transparent',
+        borderRight: '15px solid transparent',
+        borderBottom: isLit ? '25px solid #f0e68c' : '25px solid #daa520',
+        filter: isLit ? 'drop-shadow(0 0 12px rgba(240, 230, 140, 0.8)) brightness(1.3)' : 'drop-shadow(0 0 4px rgba(218, 165, 32, 0.5))',
+        animationDuration: '12s'
+      },
+      'triangle-4': {
+        borderLeft: '30px solid transparent',
+        borderRight: '30px solid transparent',
+        borderBottom: isLit ? '50px solid #cd853f' : '50px solid #b8860b',
+        filter: isLit ? 'drop-shadow(0 0 25px rgba(205, 133, 63, 0.9)) brightness(1.6)' : 'drop-shadow(0 0 10px rgba(184, 134, 11, 0.8))',
+        animationDuration: '9s'
+      },
+      'triangle-5': {
+        borderLeft: '18px solid transparent',
+        borderRight: '18px solid transparent',
+        borderBottom: isLit ? '30px solid #ffb84d' : '30px solid #ffa500',
+        filter: isLit ? 'drop-shadow(0 0 18px rgba(255, 184, 77, 0.8)) brightness(1.4)' : 'drop-shadow(0 0 6px rgba(255, 165, 0, 0.6))',
+        animationDuration: '11s'
+      }
+    };
+    
+    const typeStyle = triangleStyles[triangleType];
+    if (typeStyle) {
+      Object.assign(triangle.style, typeStyle);
+    }
+    
+    triangleContainer.appendChild(triangle);
+    
+    const animationDuration = parseFloat(triangle.style.animationDuration) * 1000;
+    
+    setTimeout(() => {
+      if (triangle.parentNode) {
+        triangle.remove();
+      }
+    }, animationDuration);
+  }
+  
+  function startTriangleRain() {
+    createTriangle();
+    setTimeout(startTriangleRain, 300);
+  }
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    // Add keyframe animations to the document
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fall {
+        0% {
+          transform: translateY(-100px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(calc(100vh - 80px + 100px)) rotateX(360deg) rotateY(180deg) rotateZ(90deg) scale(0.1);
+          opacity: 0;
+        }
+      }
+      
+      @keyframes fallWithLight {
+        0% {
+          transform: translateY(-100px) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        20% {
+          filter: brightness(1.2);
+        }
+        30% {
+          filter: brightness(1.8);
+        }
+        40% {
+          filter: brightness(1.1);
+        }
+        50% {
+          filter: brightness(1.5);
+        }
+        60% {
+          filter: brightness(1.3);
+        }
+        70% {
+          filter: brightness(1.7);
+        }
+        80% {
+          filter: brightness(1.2);
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(calc(100vh - 80px + 100px)) rotateX(360deg) rotateY(180deg) rotateZ(90deg) scale(0.1);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    startTriangleRain();
+    
+    for (let i = 0; i < 20; i++) {
+      setTimeout(createTriangle, i * 100);
+    }
+  });
+</script>

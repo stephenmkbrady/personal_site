@@ -1,0 +1,269 @@
+---
+import { Image } from 'astro:assets';
+
+interface Props {
+  image: string;
+  text: string;
+  type?: 'normal' | 'holographic';
+  loading?: 'eager' | 'lazy';
+}
+
+const { image, text, type = 'normal', loading = 'lazy' } = Astro.props;
+---
+
+<div class={`card ${type === 'holographic' ? 'holographic' : ''}`}>
+  <div class="card-inner">
+    <div class="card-face card-front">
+      <Image src={image} alt="Tech" class="card-image" width={400} height={533} loading={loading} />
+      <div class="card-overlay"></div>
+      <div class="card-text">{text}</div>
+    </div>
+    <div class="card-face card-back">
+      <div class="card-back-text">ring0.space</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .card {
+    aspect-ratio: 3/4;
+    position: relative;
+    border-radius: 8px;
+    background: transparent;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    margin: 20px;
+    transform: translateY(0px) scale(1);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .card:hover {
+    transform: translateY(-30px) scale(1.15);
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8), 0 20px 40px rgba(0, 0, 0, 0.5), 0 10px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .card.flipping {
+    animation: cardFlip 0.6s ease-in-out forwards;
+  }
+
+  @keyframes cardFlip {
+    0% {
+      transform: translateY(-30px) scale(1.15) rotateY(0deg);
+    }
+    15% {
+      transform: translateY(-50px) scale(1.25) rotateY(45deg);
+    }
+    30% {
+      transform: translateY(-70px) scale(1.35) rotateY(135deg);
+    }
+    45% {
+      transform: translateY(-85px) scale(1.4) rotateY(225deg);
+    }
+    60% {
+      transform: translateY(-80px) scale(1.35) rotateY(315deg);
+    }
+    80% {
+      transform: translateY(-50px) scale(1.25) rotateY(360deg);
+    }
+    100% {
+      transform: translateY(0px) scale(1) rotateY(360deg);
+    }
+  }
+
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    transform-style: preserve-3d;
+    transition: transform 0.6s;
+  }
+
+  .card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    backface-visibility: hidden;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+  }
+
+  .card-front {
+    transform: rotateY(0deg);
+    overflow: hidden;
+  }
+
+  .card-back {
+    transform: rotateY(180deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ffd700, #b8860b);
+    border: 1px solid rgba(218, 165, 32, 0.3);
+  }
+
+  .card-back-text {
+    font-size: clamp(0.6rem, 3vw, 1.2rem);
+    font-weight: 400;
+    color: #000;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.05em;
+    text-align: center;
+    padding: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    box-sizing: border-box;
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo UI', 'MS PGothic', 'Osaka', sans-serif;
+  }
+
+  .card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: filter 0.1s ease;
+    position: relative;
+  }
+
+  .card.holographic .card-image {
+    filter: contrast(1.2) saturate(1.3) hue-rotate(0deg);
+    will-change: filter;
+    transition: filter 0.3s ease;
+  }
+
+  .card .card-image::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, transparent 30%),
+      linear-gradient(315deg, rgba(0, 0, 0, 0.4) 0%, transparent 25%),
+      radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.7) 0%, transparent 40%),
+      radial-gradient(ellipse at 80% 80%, rgba(0, 0, 0, 0.3) 0%, transparent 35%),
+      radial-gradient(ellipse at 60% 40%, rgba(255, 255, 255, 0.5) 0%, transparent 30%),
+      radial-gradient(ellipse at 30% 70%, rgba(0, 0, 0, 0.2) 0%, transparent 25%);
+    mix-blend-mode: hard-light;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: 8px;
+  }
+
+  .card:hover .card-image::after {
+    opacity: 1;
+  }
+
+  .card .card-image::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.4) 0%, 
+        rgba(255, 255, 255, 0.2) 25%, 
+        transparent 50%),
+      radial-gradient(ellipse at 25% 25%, 
+        rgba(255, 255, 255, 0.5) 0%, 
+        rgba(255, 255, 255, 0.2) 30%, 
+        transparent 60%);
+    mix-blend-mode: overlay;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: 8px;
+  }
+
+  .card:hover .card-image::before {
+    opacity: 1;
+  }
+
+  .card .card-front::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(ellipse at var(--light-x, 30%) var(--light-y, 30%), 
+        rgba(255, 255, 255, 0.6) 0%, 
+        rgba(255, 255, 255, 0.3) 25%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        transparent 70%);
+    mix-blend-mode: soft-light;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 3;
+    pointer-events: none;
+    border-radius: 8px;
+  }
+
+  .card:hover .card-front::before {
+    opacity: 0.8;
+  }
+
+  .card-overlay {
+    position: absolute;
+    bottom: -5px;
+    left: -5px;
+    right: -5px;
+    height: 70%;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 8%,
+      rgba(0, 0, 0, 0.1) 20%,
+      rgba(0, 0, 0, 0.4) 50%,
+      rgba(0, 0, 0, 0.8) 80%,
+      rgba(0, 0, 0, 0.95) 95%,
+      rgba(0, 0, 0, 1) 100%
+    );
+    pointer-events: none;
+    z-index: 4;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .card-text {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 400;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    z-index: 5;
+    line-height: 1.3;
+    transition: none;
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo UI', 'MS PGothic', 'Osaka', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .card.holographic::after {
+    content: "HOLO";
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1, #96CEB4, #FFEAA7);
+    color: #000;
+    font-size: 8px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    z-index: 11;
+    text-shadow: none;
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+  }
+</style>

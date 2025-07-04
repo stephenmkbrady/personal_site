@@ -1,0 +1,10 @@
+repositories:
+  - owner: "octocat"
+    repo: "Hello-World"
+    display_name: "Hello World Example"
+  - owner: "microsoft"
+    repo: "vscode"
+    display_name: "Visual Studio Code"
+  - owner: "rust-lang"
+    repo: "rust"
+    display_name: "Rust Programming Language"

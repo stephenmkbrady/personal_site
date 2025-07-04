@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Backend API Tester</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Portfolio Backend API Tester</h1>
+        
+        <div class="section">
+            <h2>Health Check</h2>
+            <button onclick="testHealthCheck()">Test Health Check</button>
+            <div id="health-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>Content API</h2>
+            <div class="form-group">
+                <label>Category:</label>
+                <select id="content-category">
+                    <option value="project">Project</option>
+                    <option value="blog">Blog</option>
+                </select>
+                <button onclick="testContentList()">Get Content List</button>
+            </div>
+            <div id="content-list-result" class="result"></div>
+
+            <div class="form-group">
+                <label>Category:</label>
+                <input type="text" id="content-item-category" placeholder="project" value="project">
+                <label>Slug:</label>
+                <input type="text" id="content-item-slug" placeholder="project1">
+                <button onclick="testContentItem()">Get Content Item</button>
+            </div>
+            <div id="content-item-result" class="result"></div>
+
+            <div class="form-group">
+                <button onclick="testContentTags()">Get All Tags</button>
+            </div>
+            <div id="content-tags-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>GitHub API</h2>
+            <button onclick="testGitHubProjects()">Get GitHub Projects</button>
+            <div id="github-projects-result" class="result"></div>
+
+            <button onclick="testRefreshGitHub()">Refresh GitHub Cache</button>
+            <div id="github-refresh-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>Test All Endpoints</h2>
+            <button onclick="testAllEndpoints()">Run All Tests</button>
+            <div id="all-tests-result" class="result"></div>
+        </div>
+    </div>
+
+    <script src="static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+---
+interface Props {
+  text: string;
+}
+
+const { text } = Astro.props;
+---
+
+<div class="marquee-container">
+  <div class="marquee-content" id="marqueeText">
+    {text}
+  </div>
+</div>
+
+<style>
+  .marquee-container {
+    position: fixed;
+    top: 20px;
+    left: 0;
+    width: 100%;
+    height: 40px;
+    background: linear-gradient(135deg, #f5e6a8, #d4b896);
+    z-index: 100;
+    overflow: hidden;
+    box-shadow: 
+      0 4px 8px rgba(0, 0, 0, 0.3),
+      inset 0 -4px 8px rgba(0, 0, 0, 0.2),
+      inset 0 4px 8px rgba(255, 255, 255, 0.3);
+  }
+
+
+  .marquee-content {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: #000;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+    animation: scroll-marquee 15s linear infinite;
+    padding-right: 100px;
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo UI', 'MS PGothic', 'Osaka', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .marquee-content.paused {
+    animation-play-state: paused;
+  }
+
+  @keyframes scroll-marquee {
+    0% {
+      left: 100%;
+    }
+    100% {
+      left: -100%;
+    }
+  }
+</style>
+
+<script>
+  const marqueeText = document.getElementById('marqueeText');
+  const marqueeContainer = document.querySelector('.marquee-container');
+  
+  if (marqueeContainer && marqueeText) {
+    marqueeContainer.addEventListener('mouseenter', () => {
+      marqueeText.classList.add('paused');
+    });
+    
+    marqueeContainer.addEventListener('mouseleave', () => {
+      marqueeText.classList.remove('paused');
+    });
+    
+    marqueeContainer.addEventListener('touchstart', () => {
+      marqueeText.classList.add('paused');
+    });
+    
+    marqueeContainer.addEventListener('touchend', () => {
+      marqueeText.classList.remove('paused');
+    });
+  }
+</script>
