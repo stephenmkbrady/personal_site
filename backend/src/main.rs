@@ -51,14 +51,15 @@ async fn main() -> std::io::Result<()> {
                             .route("/{category}/{slug}", web::get().to(get_content_item))
                             .route("/tags", web::get().to(get_content_tags))
                     )
-                    .service(
-                        web::scope("/github")
-                            .route("/projects", web::get().to(get_github_projects))
-                    )
-                    .service(
-                        web::scope("/admin")
-                            .route("/refresh-github", web::post().to(refresh_github_cache))
-                    )
+                    // Temporarily disabled GitHub routes due to missing functions
+                    // .service(
+                    //     web::scope("/github")
+                    //         .route("/projects", web::get().to(get_github_projects))
+                    // )
+                    // .service(
+                    //     web::scope("/admin")
+                    //         .route("/refresh-github", web::post().to(refresh_github_cache))
+                    // )
             )
             .service(fs::Files::new("/", "../frontend").index_file("index.html"))
     })

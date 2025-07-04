@@ -8,6 +8,8 @@ pub struct ContentMetadata {
     pub date: String,
     pub tags: Vec<String>,
     pub description: String,
+    #[serde(default)]
+    pub image: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,3 +80,4 @@ impl<T> ApiResponse<T> {
         }
     }
 }
+

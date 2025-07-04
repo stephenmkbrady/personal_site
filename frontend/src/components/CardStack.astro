@@ -1,12 +1,14 @@
 ---
 interface Props {
   text?: string;
+  category: string;
+  type?: 'normal' | 'holographic';
 }
 
-const { text = 'ring0.space' } = Astro.props;
+const { text = 'Portfolio', category, type = 'normal' } = Astro.props;
 ---
 
-<div class="card-stack">
+<div class={`card-stack ${type === 'holographic' ? 'holographic' : ''}`} data-category={category}>
   <div class="stack-card"></div>
   <div class="stack-card"></div>
   <div class="stack-card"></div>
@@ -18,12 +20,20 @@ const { text = 'ring0.space' } = Astro.props;
 
 <style>
   .card-stack {
-    grid-column: 1;
-    grid-row: 1;
     aspect-ratio: 3/4;
     position: relative;
     margin: 20px;
     transform-style: preserve-3d;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+
+  .card-stack:hover {
+    transform: translateY(-10px) scale(1.05);
+  }
+
+  .card-stack.active {
+    transform: translateY(-10px) scale(1.05);
   }
 
   .stack-card {
@@ -78,5 +88,39 @@ const { text = 'ring0.space' } = Astro.props;
     max-width: 90%;
     padding: 0 5px;
     font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo UI', 'MS PGothic', 'Osaka', sans-serif;
+  }
+
+  .card-stack.holographic .stack-card {
+    background: linear-gradient(135deg, #ffd700, #b8860b, #ffa500, #ffb347);
+    background-size: 400% 400%;
+    animation: holographicShimmer 3s ease-in-out infinite;
+  }
+
+  .card-stack.holographic::after {
+    content: "HOLO";
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1, #96CEB4, #FFEAA7);
+    color: #000;
+    font-size: 8px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    z-index: 11;
+    text-shadow: none;
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+  }
+
+  @keyframes holographicShimmer {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
   }
 </style>
