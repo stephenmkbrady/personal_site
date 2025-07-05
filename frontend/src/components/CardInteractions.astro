@@ -1,10 +1,10 @@
 ---
-// Client-side component for card interactions and CardStack functionality
+// Client-side component for card interactions and modal functionality
 ---
 
 <script>
   let throttleTimeout = null;
-  let activeCardStacks = new Set();
+  let activeCategories = new Set();
   let cardContainers = new Map();
   let initialized = false;
 
@@ -553,7 +553,7 @@
       return;
     }
     
-    const isActive = activeCardStacks.has(category);
+    const isActive = activeCategories.has(category);
     console.log('Category is active:', isActive);
     
     if (isActive) {
@@ -570,7 +570,7 @@
     console.log('3. Grid element found:', !!document.getElementById('grid'));
     console.log('3. Button element:', buttonElement);
     
-    activeCardStacks.add(category);
+    activeCategories.add(category);
     if (buttonElement) {
       buttonElement.classList.add('active');
     }
@@ -734,7 +734,7 @@
   }
   
   function hideCardsForCategory(category: string, buttonElement: HTMLElement) {
-    activeCardStacks.delete(category);
+    activeCategories.delete(category);
     buttonElement.classList.remove('active');
     
     const cardsContainer = cardContainers.get(category);

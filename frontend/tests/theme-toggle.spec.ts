@@ -12,7 +12,7 @@ test.describe('Theme Toggle Tests', () => {
     await expect(themeToggle).toBeVisible();
   });
 
-  test('should start with light theme and moon icon', async ({ page }) => {
+  test('should start with dark theme and sun icon', async ({ page }) => {
     // Check initial data-theme attribute
     const dataTheme = await page.evaluate(() => {
       return document.documentElement.getAttribute('data-theme');
@@ -29,9 +29,9 @@ test.describe('Theme Toggle Tests', () => {
     console.log('Sun icon opacity:', sunOpacity);
     console.log('Moon icon opacity:', moonOpacity);
     
-    // Should show moon in light theme
-    expect(moonOpacity).toBe('1');
-    expect(sunOpacity).toBe('0');
+    // Should show sun in dark theme
+    expect(sunOpacity).toBe('1');
+    expect(moonOpacity).toBe('0');
   });
 
   test('should toggle theme and icon when clicked', async ({ page }) => {
@@ -92,26 +92,26 @@ test.describe('Theme Toggle Tests', () => {
   });
 
   test('should persist theme preference', async ({ page }) => {
-    // Set to dark theme
+    // Already starts in dark theme, click to go to light
     const themeToggle = page.locator('#theme-toggle');
     await themeToggle.click();
     await page.waitForTimeout(500);
     
-    const darkTheme = await page.evaluate(() => {
+    const lightTheme = await page.evaluate(() => {
       return document.documentElement.getAttribute('data-theme');
     });
-    expect(darkTheme).toBe('dark');
+    expect(lightTheme).toBe('light');
     
     // Reload page
     await page.reload();
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
     
-    // Should still be dark
+    // Should still be light
     const persistedTheme = await page.evaluate(() => {
       return document.documentElement.getAttribute('data-theme');
     });
-    expect(persistedTheme).toBe('dark');
+    expect(persistedTheme).toBe('light');
   });
 
   test('should handle multiple clicks correctly', async ({ page }) => {
@@ -128,10 +128,10 @@ test.describe('Theme Toggle Tests', () => {
       console.log(`Click ${i + 1} - Theme:`, currentTheme);
     }
     
-    // Should end up back at light theme
+    // Should end up back at dark theme (started dark, 4 clicks = even number)
     const finalTheme = await page.evaluate(() => {
       return document.documentElement.getAttribute('data-theme');
     });
-    expect(finalTheme).toBe('light');
+    expect(finalTheme).toBe('dark');
   });
 });
