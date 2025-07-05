@@ -14,6 +14,13 @@
     pointer-events: none;
     perspective: 1000px;
     z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  /* Show triangles only in dark theme */
+  :global([data-theme="dark"]) .triangle-container {
+    opacity: 1;
   }
 
   .triangle {

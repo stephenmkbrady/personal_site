@@ -892,13 +892,13 @@
     unifiedContainer.className = 'cards-container unified-container';
     unifiedContainer.setAttribute('data-category', 'unified');
     unifiedContainer.style.cssText = `
-      display: none;
+      display: grid;
       grid-template-columns: repeat(auto-fit, 140px);
       gap: 20px;
       margin: 1px 20px;
       padding-top: 2px;
-      opacity: 0;
-      transform: translateY(20px);
+      opacity: 1;
+      transform: translateY(0);
       transition: all 0.5s ease, max-height 0.5s ease;
       justify-content: center;
       justify-items: center;
@@ -909,36 +909,27 @@
     // Insert after grid
     grid.parentNode?.insertBefore(unifiedContainer, grid.nextSibling);
     
-    // Create and animate cards with staggered timing
+    // Create all cards first without animation
+    const cards = [];
     allCards.forEach((cardData, index) => {
-      setTimeout(() => {
-        const card = createCard(cardData, cardData.category, index);
-        unifiedContainer.appendChild(card);
-        
-        // Animate card from center position
-        const containerRect = unifiedContainer.getBoundingClientRect();
-        const gridRect = grid.getBoundingClientRect();
-        
-        const initialX = (gridRect.left + gridRect.width / 2) - (containerRect.left + containerRect.width / 2);
-        const initialY = (gridRect.top + gridRect.height / 2) - (containerRect.top + containerRect.height / 2);
-        
-        card.style.transform = `translate(${initialX}px, ${initialY}px) scale(0.5) rotateY(180deg)`;
-        card.style.opacity = '0';
-        
-        requestAnimationFrame(() => {
-          card.style.transition = 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
-          card.style.transform = 'translate(0, 0) scale(1) rotateY(0deg)';
-          card.style.opacity = '1';
-        });
-      }, index * 150);
+      const card = createCard(cardData, cardData.category, index);
+      card.style.transform = 'scale(0) rotateY(180deg)';
+      card.style.opacity = '0';
+      card.style.transition = 'none';
+      unifiedContainer.appendChild(card);
+      cards.push(card);
     });
     
-    // Show unified container
-    setTimeout(() => {
-      unifiedContainer.style.display = 'grid';
-      unifiedContainer.style.opacity = '1';
-      unifiedContainer.style.transform = 'translateY(0)';
-    }, 100);
+    // Wait for layout to settle, then animate cards in with staggered timing
+    requestAnimationFrame(() => {
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.style.transition = 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
+          card.style.transform = 'scale(1) rotateY(0deg)';
+          card.style.opacity = '1';
+        }, index * 150);
+      });
+    });
   }
 
   // Run immediately and also on DOM ready
