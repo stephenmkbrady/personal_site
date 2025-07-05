@@ -2,9 +2,15 @@ repositories:
   - owner: "octocat"
     repo: "Hello-World"
     display_name: "Hello World Example"
+    feature: false
+    image: "/notfeature-placeholder.jpg"
   - owner: "microsoft"
     repo: "vscode"
     display_name: "Visual Studio Code"
+    feature: true
+    image: "/blog-placeholder.jpg"
   - owner: "rust-lang"
     repo: "rust"
     display_name: "Rust Programming Language"
+    feature: false
+    image: "/notfeature-placeholder.jpg"

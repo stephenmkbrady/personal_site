@@ -3,7 +3,8 @@ title: "API Design Best Practices"
 date: "2024-01-18"
 tags: ["api", "web-development", "rest", "design"]
 description: "Essential principles for designing robust and maintainable APIs"
-image: "/blog-placeholder.jpg"
+image: "/notfeature-placeholder.jpg"
+feature: false
 ---
 
 # API Design Best Practices

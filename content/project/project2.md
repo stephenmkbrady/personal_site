@@ -3,6 +3,8 @@ title: "Rust CLI Tool"
 date: "2024-01-10"
 tags: ["rust", "cli", "productivity", "tools"]
 description: "A powerful command-line tool for developers built with Rust"
+image: "/notfeature-placeholder.jpg"
+feature: false
 ---
 
 # Rust CLI Tool

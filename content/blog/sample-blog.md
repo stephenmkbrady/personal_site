@@ -4,6 +4,7 @@ date: "2024-01-20"
 tags: ["development", "blog"]
 description: "A sample blog post to test the blog functionality"
 image: "/blog-placeholder.jpg"
+feature: true
 ---
 
 # Sample Blog Post

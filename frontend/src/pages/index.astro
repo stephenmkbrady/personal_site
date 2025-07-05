@@ -21,13 +21,7 @@ const contentCategories = [
   
   <div class="container">
     <SearchBox />
-    <div class="button-grid" id="grid">
-      {contentCategories.map((category) => (
-        <CategoryButton 
-          text={category.name} 
-          category={category.key}
-        />
-      ))}
+    <div class="grid" id="grid">
     </div>
   </div>
   

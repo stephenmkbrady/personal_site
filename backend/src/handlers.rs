@@ -107,5 +107,94 @@ pub async fn get_content_tags(
     Ok(HttpResponse::Ok().json(ApiResponse::success(tags)))
 }
 
+pub async fn get_github_projects(
+    github_cache: web::Data<Mutex<HashMap<String, CachedGithubProject>>>,
+) -> Result<HttpResponse> {
+    // Load GitHub config
+    let config = match load_github_config() {
+        Ok(config) => config,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(
+                ApiResponse::<()>::error(&format!("Failed to load GitHub config: {}", e))
+            ));
+        }
+    };
+    
+    let mut projects = Vec::new();
+    
+    for repo in config.repositories {
+        let cache_key = format!("{}/{}", repo.owner, repo.repo);
+        
+        // Check cache first
+        let cached_project = {
+            let cache = github_cache.lock().unwrap();
+            cache.get(&cache_key).cloned()
+        };
+        
+        if let Some(cached) = cached_project {
+            // Check if cache is still valid (24 hours)
+            if Utc::now() - cached.cached_at < Duration::hours(24) {
+                let mut project = cached.project;
+                // Add feature property from config
+                project.feature = repo.feature;
+                projects.push(project);
+                continue;
+            }
+        }
+        
+        // Fetch from GitHub API
+        match fetch_github_project(&repo).await {
+            Ok(mut project) => {
+                // Add feature property from config
+                project.feature = repo.feature;
+                
+                // Cache the project
+                let cached_project = CachedGithubProject {
+                    project: project.clone(),
+                    cached_at: Utc::now(),
+                };
+                
+                {
+                    let mut cache = github_cache.lock().unwrap();
+                    cache.insert(cache_key, cached_project);
+                }
+                
+                projects.push(project);
+            }
+            Err(e) => {
+                eprintln!("Failed to fetch GitHub project {}/{}: {}", repo.owner, repo.repo, e);
+                
+                // Create minimal project from config if API fails
+                let project = GitHubProject {
+                    owner: repo.owner.clone(),
+                    repo: repo.repo.clone(),
+                    display_name: repo.display_name.clone(),
+                    feature: repo.feature,
+                    readme_html: "README not available".to_string(),
+                    url: format!("https://github.com/{}/{}", repo.owner, repo.repo),
+                    stars: 0,
+                    forks: 0,
+                    description: Some("GitHub repository".to_string()),
+                };
+                projects.push(project);
+            }
+        }
+    }
+    
+    Ok(HttpResponse::Ok().json(ApiResponse::success(projects)))
+}
+
+pub async fn refresh_github_cache(
+    github_cache: web::Data<Mutex<HashMap<String, CachedGithubProject>>>,
+) -> Result<HttpResponse> {
+    // Clear the cache
+    {
+        let mut cache = github_cache.lock().unwrap();
+        cache.clear();
+    }
+    
+    Ok(HttpResponse::Ok().json(ApiResponse::success("GitHub cache refreshed")))
+}
+
 
 

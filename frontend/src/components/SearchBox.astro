@@ -6,13 +6,17 @@
   <input 
     type="text" 
     id="card-search" 
-    placeholder="Search cards..." 
+    placeholder="Search" 
     class="search-input"
   />
-  <div class="search-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <div class="search-icon" id="search-icon">
+    <svg id="magnifying-glass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="11" cy="11" r="8"></circle>
       <path d="m21 21-4.35-4.35"></path>
+    </svg>
+    <svg id="clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   </div>
 </div>
@@ -20,12 +24,56 @@
 <script>
   function initializeSearch() {
     const searchInput = document.getElementById('card-search') as HTMLInputElement;
-    if (!searchInput) return;
+    const magnifyingGlass = document.getElementById('magnifying-glass') as SVGElement;
+    const clearIcon = document.getElementById('clear-icon') as SVGElement;
+    const searchIcon = document.getElementById('search-icon') as HTMLElement;
+    
+    if (!searchInput || !magnifyingGlass || !clearIcon || !searchIcon) return;
+
+    function updateIcon() {
+      const hasText = searchInput.value.trim().length > 0;
+      if (hasText) {
+        magnifyingGlass.style.display = 'none';
+        clearIcon.style.display = 'block';
+        searchIcon.style.cursor = 'pointer';
+        searchIcon.style.pointerEvents = 'auto';
+      } else {
+        magnifyingGlass.style.display = 'block';
+        clearIcon.style.display = 'none';
+        searchIcon.style.cursor = 'default';
+        searchIcon.style.pointerEvents = 'none';
+      }
+    }
 
     searchInput.addEventListener('input', (e) => {
       const searchTerm = (e.target as HTMLInputElement).value.toLowerCase().trim();
+      updateIcon();
       filterCards(searchTerm);
     });
+
+    // Handle clear icon click
+    searchIcon.addEventListener('click', () => {
+      if (searchInput.value.trim().length > 0) {
+        searchInput.value = '';
+        updateIcon();
+        filterCards('');
+        searchInput.focus();
+      }
+    });
+
+    // Handle touch events for mobile
+    searchIcon.addEventListener('touchend', (e) => {
+      if (searchInput.value.trim().length > 0) {
+        e.preventDefault();
+        searchInput.value = '';
+        updateIcon();
+        filterCards('');
+        searchInput.focus();
+      }
+    });
+
+    // Initial icon state
+    updateIcon();
   }
 
   function filterCards(searchTerm: string) {
@@ -109,6 +157,20 @@
       } else if (searchableText.includes(searchTerm)) {
         matchingCards.push({ element: cardElement, data: null });
       }
+    });
+    
+    // Sort matching cards to show featured items first
+    matchingCards.sort((a, b) => {
+      // Check if cards are holographic (which means they're featured)
+      const isFeatureA = a.element.classList.contains('holographic');
+      const isFeatureB = b.element.classList.contains('holographic');
+      
+      // Featured items first
+      if (isFeatureA && !isFeatureB) return -1;
+      if (!isFeatureA && isFeatureB) return 1;
+      
+      // Within same feature status, maintain original order
+      return 0;
     });
     
     // Create list items for matching cards
@@ -241,6 +303,16 @@
     height: 20px;
     color: rgba(255, 255, 255, 0.7);
     pointer-events: none;
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .search-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffd700;
   }
 
   .search-icon svg {

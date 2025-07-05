@@ -9,6 +9,7 @@ pub struct ContentMetadata {
     pub tags: Vec<String>,
     pub description: String,
     pub image: Option<String>,
+    pub feature: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,6 +31,7 @@ pub struct GitHubRepo {
     pub owner: String,
     pub repo: String,
     pub display_name: String,
+    pub feature: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,6 +44,7 @@ pub struct GitHubProject {
     pub stars: u32,
     pub forks: u32,
     pub description: Option<String>,
+    pub feature: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
