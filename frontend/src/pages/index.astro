@@ -5,6 +5,7 @@ import Marquee from '../components/Marquee.astro';
 import TriangleRain from '../components/TriangleRain.astro';
 import CardInteractions from '../components/CardInteractions.astro';
 import SearchBox from '../components/SearchBox.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
 
 // Define the content categories
 const contentCategories = [
@@ -15,6 +16,7 @@ const contentCategories = [
 ---
 
 <Layout title="Portfolio - Raining Pyramids Tech Cards">
+  <ThemeToggle />
   <Marquee text="Welcome to my portfolio • Click on the card stacks to explore projects, blog posts, and GitHub repositories" />
   
   <TriangleRain />

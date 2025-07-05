@@ -19,7 +19,7 @@ const { text } = Astro.props;
     left: 0;
     width: 100%;
     height: 40px;
-    background: linear-gradient(135deg, #f5e6a8, #d4b896);
+    background: var(--marquee-bg);
     z-index: 100;
     overflow: hidden;
     box-shadow: 
@@ -36,7 +36,7 @@ const { text } = Astro.props;
     white-space: nowrap;
     font-size: 1.2rem;
     font-weight: 400;
-    color: #000;
+    color: var(--marquee-text);
     text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
     animation: scroll-marquee 15s linear infinite;
     padding-right: 100px;

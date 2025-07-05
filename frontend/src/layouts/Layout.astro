@@ -22,6 +22,26 @@ const { title } = Astro.props;
 </html>
 
 <style is:global>
+  :root {
+    --bg-body: linear-gradient(to bottom, #f5f5dc 0%, #faf0e6 50%, #f5f5dc 100%);
+    --marquee-bg: linear-gradient(135deg, #ffd700, #b8860b);
+    --marquee-text: #000;
+    --search-bg: #fff;
+    --search-text: #000;
+    --search-border: #daa520;
+    --search-placeholder: #999;
+  }
+
+  [data-theme="dark"] {
+    --bg-body: linear-gradient(to bottom, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+    --marquee-bg: linear-gradient(135deg, #333, #444);
+    --marquee-text: #fff;
+    --search-bg: #333;
+    --search-text: #fff;
+    --search-border: #555;
+    --search-placeholder: #ccc;
+  }
+
   * {
     margin: 0;
     padding: 0;
@@ -30,7 +50,7 @@ const { title } = Astro.props;
 
   body {
     font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo UI', 'MS PGothic', 'Osaka', sans-serif;
-    background: linear-gradient(to bottom, #f5f5dc 0%, #faf0e6 50%, #f5f5dc 100%);
+    background: var(--bg-body);
     min-height: 100vh;
     color: #fff;
     overflow-x: hidden;
