@@ -1,0 +1,197 @@
+---
+// Gentle ocean wave patterns for light theme background
+---
+
+<div class="wave-container">
+  <div class="wave wave-1"></div>
+  <div class="wave wave-2"></div>
+  <div class="wave wave-3"></div>
+  <div class="wave wave-4"></div>
+</div>
+
+<style>
+  .wave-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60%;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    overflow: visible;
+    background: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  /* Force hide waves in dark theme with higher specificity */
+  :global(html[data-theme="dark"]) .wave-container {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    display: none !important;
+  }
+
+  /* Show waves only in light theme */
+  :global(html:not([data-theme="dark"])) .wave-container {
+    opacity: 1;
+    visibility: visible;
+    display: block;
+  }
+
+  .wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 150%;
+    height: 100%;
+    background: transparent;
+    border-radius: 0 80% 0 0;
+    clip-path: ellipse(120% 100% at 0% 100%);
+    animation: waveUndulate ease-in-out infinite;
+    transform-origin: bottom left;
+  }
+
+  .wave-base {
+    animation: waveUndulate ease-in-out infinite;
+    animation-duration: 16s;
+    animation-delay: -8s;
+    transform-origin: bottom left;
+    background: linear-gradient(
+      45deg,
+      rgba(173, 216, 230, 0.25) 0%,
+      rgba(135, 206, 235, 0.18) 35%,
+      rgba(176, 224, 230, 0.12) 65%,
+      rgba(240, 248, 255, 0.06) 85%,
+      transparent 100%
+    );
+    z-index: 0;
+    height: 100%;
+  }
+
+  .wave-1 {
+    animation: waveUndulate ease-in-out infinite;
+    animation-duration: 8s;
+    animation-delay: 0s;
+    background: linear-gradient(
+      45deg,
+      rgba(173, 216, 230, 0.35) 0%,
+      rgba(135, 206, 235, 0.28) 30%,
+      rgba(176, 224, 230, 0.22) 60%,
+      rgba(240, 248, 255, 0.12) 80%,
+      transparent 100%
+    );
+    z-index: 1;
+  }
+
+  .wave-2 {
+    animation: waveUndulate ease-in-out infinite;
+    animation-duration: 10s;
+    animation-delay: -2s;
+    background: linear-gradient(
+      50deg,
+      rgba(135, 206, 235, 0.28) 0%,
+      rgba(176, 224, 230, 0.22) 35%,
+      rgba(173, 216, 230, 0.18) 65%,
+      rgba(240, 248, 255, 0.1) 85%,
+      transparent 100%
+    );
+    z-index: 2;
+    height: 90%;
+  }
+
+  .wave-3 {
+    animation: waveUndulate ease-in-out infinite;
+    animation-duration: 12s;
+    animation-delay: -4s;
+    background: linear-gradient(
+      40deg,
+      rgba(176, 224, 230, 0.25) 0%,
+      rgba(173, 216, 230, 0.2) 40%,
+      rgba(135, 206, 235, 0.15) 70%,
+      rgba(240, 248, 255, 0.08) 90%,
+      transparent 100%
+    );
+    z-index: 3;
+    height: 80%;
+  }
+
+  .wave-4 {
+    animation: waveUndulate ease-in-out infinite;
+    animation-duration: 14s;
+    animation-delay: -6s;
+    background: linear-gradient(
+      35deg,
+      rgba(135, 206, 235, 0.30) 0%,
+      rgba(176, 224, 230, 0.26) 45%,
+      rgba(173, 216, 230, 0.22) 75%,
+      rgba(240, 248, 255, 0.14) 95%,
+      transparent 100%
+    );
+    z-index: 4;
+    height: 70%;
+  }
+
+  @keyframes waveUndulate {
+    0%, 100% {
+      transform: scaleY(1.2) scaleX(1) translateY(0px) translateX(0px) skewX(0deg);
+    }
+    25% {
+      transform: scaleY(1.25) scaleX(1.02) translateY(-3px) translateX(10px) skewX(2deg);
+    }
+    50% {
+      transform: scaleY(1.15) scaleX(0.98) translateY(-1px) translateX(-5px) skewX(-1deg);
+    }
+    75% {
+      transform: scaleY(1.22) scaleX(1.01) translateY(-2px) translateX(8px) skewX(1deg);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .wave-container {
+      height: 50%;
+    }
+    
+    .wave {
+      width: 200%;
+    }
+    
+    .wave-2 {
+      height: 85%;
+    }
+    
+    .wave-3 {
+      height: 75%;
+    }
+    
+    .wave-4 {
+      height: 65%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .wave-container {
+      height: 40%;
+    }
+    
+    .wave {
+      width: 250%;
+    }
+    
+    .wave-2 {
+      height: 80%;
+    }
+    
+    .wave-3 {
+      height: 70%;
+    }
+    
+    .wave-4 {
+      height: 60%;
+    }
+  }
+</style>

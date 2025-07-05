@@ -1,7 +1,7 @@
 repositories:
-  - owner: "octocat"
-    repo: "Hello-World"
-    display_name: "Hello World Example"
+  - owner: "stephenmkbrady"
+    repo: "boo_bot"
+    display_name: "Matrix chat agent"
     feature: false
     image: "/notfeature-placeholder.jpg"
   - owner: "microsoft"
