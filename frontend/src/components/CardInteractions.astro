@@ -443,11 +443,11 @@
       cardsContainer.className = 'cards-container';
       cardsContainer.setAttribute('data-category', category);
       cardsContainer.style.cssText = `
-        display: grid;
+        display: none;
         grid-template-columns: repeat(auto-fit, 140px);
         gap: 20px;
-        margin: 10px 20px;
-        padding-top: 60px;
+        margin: 1px 20px;
+        padding-top: 2px;
         opacity: 0;
         transform: translateY(20px);
         transition: all 0.5s ease, max-height 0.5s ease;
@@ -581,6 +581,7 @@
     
     // Show container
     setTimeout(() => {
+      cardsContainer.style.display = 'grid';
       cardsContainer.style.opacity = '1';
       cardsContainer.style.transform = 'translateY(0)';
     }, 100);
