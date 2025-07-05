@@ -3,7 +3,7 @@ use std::io;
 use std::path::Path;
 use serde_yaml;
 use reqwest;
-use pulldown_cmark::{Parser, Options, html};
+use pulldown_cmark::{Parser, Options, html, Event, Tag, CodeBlockKind};
 use regex::Regex;
 use base64::Engine;
 use crate::models::*;
@@ -139,7 +139,26 @@ pub async fn fetch_github_project(repo: &GitHubRepo) -> Result<GitHubProject, Bo
             
             let parser = Parser::new_ext(&processed_markdown, options);
             let mut html_content = String::new();
-            html::push_html(&mut html_content, parser);
+            
+            // Process events to add language classes for syntax highlighting
+            let events: Vec<Event> = parser.into_iter().map(|event| {
+                match event {
+                    Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) => {
+                        let lang_class = if lang.is_empty() {
+                            "language-text".to_string()
+                        } else {
+                            format!("language-{}", lang)
+                        };
+                        Event::Html(format!("<pre><code class=\"{}\">", lang_class).into())
+                    }
+                    Event::End(Tag::CodeBlock(CodeBlockKind::Fenced(_))) => {
+                        Event::Html("</code></pre>".into())
+                    }
+                    _ => event,
+                }
+            }).collect();
+            
+            html::push_html(&mut html_content, events.into_iter());
             
             // Further process HTML to ensure all GitHub images work
             process_github_html_images(&html_content, &repo.owner, &repo.repo)
