@@ -177,6 +177,55 @@
     });
   }
 
+  function applyModalScrollbarStyling(modal: HTMLElement) {
+    // Create a style element for scrollbar styling
+    const styleId = 'modal-scrollbar-styles';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        /* Modal scrollbar styling - dynamically applied */
+        .modal-body::-webkit-scrollbar {
+          width: 16px !important;
+        }
+        
+        .modal-body::-webkit-scrollbar-track {
+          background: #1a1a1a !important;
+          border-radius: 0 !important;
+        }
+        
+        .modal-body::-webkit-scrollbar-thumb {
+          background: #ffffff !important;
+          border-radius: 6px !important;
+          border: 2px solid #1a1a1a !important;
+        }
+        
+        .modal-body::-webkit-scrollbar-thumb:hover {
+          background: #e0e0e0 !important;
+        }
+        
+        .modal-body::-webkit-scrollbar-corner {
+          background: #1a1a1a !important;
+        }
+        
+        /* Firefox fallback */
+        .modal-body {
+          scrollbar-width: auto !important;
+          scrollbar-color: #ffffff #1a1a1a !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Also apply styles directly to the modal body element
+    const modalBody = modal.querySelector('.modal-body') as HTMLElement;
+    if (modalBody) {
+      // Force scrollbar colors for Firefox
+      modalBody.style.setProperty('scrollbar-width', 'auto', 'important');
+      modalBody.style.setProperty('scrollbar-color', '#ffffff #1a1a1a', 'important');
+    }
+  }
+
   async function openModal(card: HTMLElement) {
     card.classList.add('flipping');
     
@@ -316,9 +365,10 @@
           </div>
         `;
         
-        // Apply image scaling and syntax highlighting after modal content is loaded
+        // Apply image scaling, syntax highlighting, and scrollbar styling after modal content is loaded
         setTimeout(() => {
           scaleModalImages(modal);
+          applyModalScrollbarStyling(modal);
           // Apply syntax highlighting to code blocks
           if (window.Prism) {
             window.Prism.highlightAllUnder(modal);
@@ -367,9 +417,10 @@
           </div>
         `;
         
-        // Apply image scaling and syntax highlighting after modal content is loaded
+        // Apply image scaling, syntax highlighting, and scrollbar styling after modal content is loaded
         setTimeout(() => {
           scaleModalImages(modal);
+          applyModalScrollbarStyling(modal);
           // Apply syntax highlighting to code blocks
           if (window.Prism) {
             window.Prism.highlightAllUnder(modal);
@@ -1231,5 +1282,64 @@
     border-radius: 3px;
     z-index: 11;
     text-shadow: none;
+  }
+
+  /* Modal scrollbar styling */
+  .modal-body {
+    /* Firefox fallback */
+    scrollbar-width: auto;
+    scrollbar-color: #ffffff #1a1a1a;
+  }
+  
+  .modal-body::-webkit-scrollbar {
+    width: 16px;
+  }
+  
+  .modal-body::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 0;
+  }
+  
+  .modal-body::-webkit-scrollbar-thumb {
+    background: #ffffff;
+    border-radius: 6px;
+    border: 2px solid #1a1a1a;
+  }
+  
+  .modal-body::-webkit-scrollbar-thumb:hover {
+    background: #e0e0e0;
+  }
+  
+  .modal-body::-webkit-scrollbar-corner {
+    background: #1a1a1a;
+  }
+
+  /* Apply scrollbar styling to any scrollable content in modals */
+  .modal .markdown-content,
+  .modal .github-readme {
+    scrollbar-width: auto;
+    scrollbar-color: #ffffff #1a1a1a;
+  }
+  
+  .modal .markdown-content::-webkit-scrollbar,
+  .modal .github-readme::-webkit-scrollbar {
+    width: 16px;
+  }
+  
+  .modal .markdown-content::-webkit-scrollbar-track,
+  .modal .github-readme::-webkit-scrollbar-track {
+    background: #1a1a1a;
+  }
+  
+  .modal .markdown-content::-webkit-scrollbar-thumb,
+  .modal .github-readme::-webkit-scrollbar-thumb {
+    background: #ffffff;
+    border-radius: 6px;
+    border: 2px solid #1a1a1a;
+  }
+  
+  .modal .markdown-content::-webkit-scrollbar-thumb:hover,
+  .modal .github-readme::-webkit-scrollbar-thumb:hover {
+    background: #e0e0e0;
   }
 </style>
