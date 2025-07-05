@@ -680,7 +680,7 @@
     
     if (category === 'github') {
       title = cardData.display_name || cardData.name || cardData.title || 'GitHub Project';
-      image = cardData.avatar_url || '/placeholder.jpg';
+      image = cardData.image || '/placeholder.jpg';
       description = cardData.description || 'GitHub repository';
     } else {
       // For content items, data is in cardData.metadata

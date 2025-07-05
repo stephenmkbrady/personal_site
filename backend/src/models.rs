@@ -32,6 +32,7 @@ pub struct GitHubRepo {
     pub repo: String,
     pub display_name: String,
     pub feature: Option<bool>,
+    pub image: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +46,7 @@ pub struct GitHubProject {
     pub forks: u32,
     pub description: Option<String>,
     pub feature: Option<bool>,
+    pub image: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

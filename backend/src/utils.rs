@@ -154,5 +154,6 @@ pub async fn fetch_github_project(repo: &GitHubRepo) -> Result<GitHubProject, Bo
         forks: repo_data["forks_count"].as_u64().unwrap_or(0) as u32,
         description: repo_data["description"].as_str().map(|s| s.to_string()),
         feature: repo.feature,
+        image: repo.image.clone(),
     })
 }

@@ -135,8 +135,9 @@ pub async fn get_github_projects(
             // Check if cache is still valid (24 hours)
             if Utc::now() - cached.cached_at < Duration::hours(24) {
                 let mut project = cached.project;
-                // Add feature property from config
+                // Add feature and image properties from config
                 project.feature = repo.feature;
+                project.image = repo.image.clone();
                 projects.push(project);
                 continue;
             }
@@ -145,8 +146,9 @@ pub async fn get_github_projects(
         // Fetch from GitHub API
         match fetch_github_project(&repo).await {
             Ok(mut project) => {
-                // Add feature property from config
+                // Add feature and image properties from config
                 project.feature = repo.feature;
+                project.image = repo.image.clone();
                 
                 // Cache the project
                 let cached_project = CachedGithubProject {
@@ -170,6 +172,7 @@ pub async fn get_github_projects(
                     repo: repo.repo.clone(),
                     display_name: repo.display_name.clone(),
                     feature: repo.feature,
+                    image: repo.image.clone(),
                     readme_html: "README not available".to_string(),
                     url: format!("https://github.com/{}/{}", repo.owner, repo.repo),
                     stars: 0,
