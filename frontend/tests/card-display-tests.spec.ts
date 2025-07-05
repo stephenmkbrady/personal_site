@@ -86,12 +86,11 @@ test.describe('Card Display and Modal Tests', () => {
   });
 
   test('should show correct content in modal when card is clicked', async ({ page }) => {
-    // Click on blog CardStack
-    await page.locator('.card-stack[data-category="blog"]').click();
-    await page.waitForTimeout(3000);
+    // Wait for unified container to load automatically
+    await page.waitForTimeout(4000);
 
-    // Click on the first card
-    const firstCard = page.locator('.cards-container[data-category="blog"] .card').first();
+    // Click on the first card (should be in unified container)
+    const firstCard = page.locator('.unified-container .card').first();
     await firstCard.click();
     
     // Wait for modal to appear
@@ -180,5 +179,60 @@ test.describe('Card Display and Modal Tests', () => {
     
     console.log('First item metadata:', firstItem.metadata);
     console.log('First item image field:', firstItem.metadata.image);
+  });
+
+  test('should correctly load modal content for cards in unified container', async ({ page }) => {
+    // Monitor API requests to verify correct category is used
+    const apiRequests: string[] = [];
+    page.on('request', request => {
+      if (request.url().includes('/api/content/')) {
+        apiRequests.push(request.url());
+        console.log('API request:', request.url());
+      }
+    });
+
+    // Wait for unified container to load automatically
+    await page.waitForTimeout(4000);
+
+    // Get cards from unified container
+    const cards = page.locator('.unified-container .card');
+    const cardCount = await cards.count();
+    expect(cardCount).toBeGreaterThan(0);
+
+    // Test modal for different card types
+    for (let i = 0; i < Math.min(cardCount, 3); i++) {
+      const card = cards.nth(i);
+      
+      // Get card category from data attributes
+      const categoryAttr = await card.getAttribute('data-category');
+      console.log(`Card ${i} category:`, categoryAttr);
+      
+      // Click the card
+      await card.click();
+      await page.waitForTimeout(1000);
+      
+      // Check modal appears
+      const modal = page.locator('.modal');
+      await expect(modal).toBeVisible();
+      
+      // Check content is loaded
+      const modalContent = modal.locator('.markdown-content');
+      const contentText = await modalContent.textContent();
+      expect(contentText).not.toBe('No content available');
+      
+      // Close modal
+      await modal.locator('.modal-close').click();
+      await page.waitForTimeout(500);
+    }
+
+    // Verify no requests were made to '/api/content/unified/'
+    const unifiedRequests = apiRequests.filter(url => url.includes('/unified/'));
+    expect(unifiedRequests).toHaveLength(0);
+    
+    // Verify requests were made to correct category endpoints
+    const validRequests = apiRequests.filter(url => 
+      url.includes('/project/') || url.includes('/blog/') || url.includes('/github/')
+    );
+    expect(validRequests.length).toBeGreaterThan(0);
   });
 });

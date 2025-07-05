@@ -198,7 +198,7 @@
     
     // Load markdown content
     try {
-      const category = card.closest('.cards-container')?.getAttribute('data-category') || 'project';
+      const category = cardData.category || 'project';
       let contentUrl = '';
       
       if (category === 'github') {
@@ -797,8 +797,9 @@
       </div>
     `;
     
-    // Store full data for modal
-    card.setAttribute('data-full-content', JSON.stringify(cardData));
+    // Store full data for modal (include category for proper API calls)
+    const cardDataWithCategory = { ...cardData, category };
+    card.setAttribute('data-full-content', JSON.stringify(cardDataWithCategory));
     
     // Add event listeners to the dynamically created card
     card.addEventListener('mousemove', handleCardInteraction);
@@ -815,18 +816,129 @@
     return card;
   }
   
-  function initializeAllCategories() {
+  async function initializeAllCategories() {
     const categories = ['project', 'blog', 'github'];
-    console.log('Auto-loading all categories:', categories);
+    console.log('Auto-loading all categories with unified sorting:', categories);
     
-    categories.forEach((category, index) => {
-      console.log('Auto-dealing cards for category:', category);
+    try {
+      // Fetch all categories simultaneously
+      const allPromises = categories.map(async (category) => {
+        const apiUrl = category === 'github' ? 
+          'http://localhost:4000/api/github/projects' : 
+          `http://localhost:4000/api/content/${category}`;
+          
+        console.log('Fetching unified data from:', apiUrl);
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        let categoryItems = [];
+        if (category === 'github') {
+          categoryItems = data.data || [];
+        } else {
+          categoryItems = data.data || [];
+        }
+        
+        // Add category metadata to each item
+        return categoryItems.map(item => ({
+          ...item,
+          category: category,
+          isFeature: category === 'github' ? item.feature === true : item.metadata?.feature === true,
+          sortDate: category === 'github' ? new Date() : new Date(item.metadata?.date || '2024-01-01')
+        }));
+      });
       
-      // Auto-deal cards for each category with a slight delay
+      // Wait for all API calls to complete
+      const categoryResults = await Promise.all(allPromises);
+      
+      // Flatten all cards into single array
+      const allCards = categoryResults.flat();
+      console.log('All cards before sorting:', allCards.length);
+      
+      // Sort globally: Featured first, then by date within each group
+      allCards.sort((a, b) => {
+        // Primary: Featured cards first
+        if (a.isFeature !== b.isFeature) {
+          return b.isFeature - a.isFeature; // true (1) before false (0)
+        }
+        
+        // Secondary: Date within each group (newest first)
+        return b.sortDate.getTime() - a.sortDate.getTime();
+      });
+      
+      console.log('Cards after unified sorting:', allCards.map(c => ({
+        title: c.metadata?.title || c.display_name || c.title,
+        category: c.category,
+        featured: c.isFeature,
+        date: c.sortDate
+      })));
+      
+      // Create single unified container
+      await createUnifiedContainer(allCards);
+      
+    } catch (error) {
+      console.error('Failed to load unified categories:', error);
+    }
+  }
+
+  async function createUnifiedContainer(allCards) {
+    const grid = document.getElementById('grid');
+    if (!grid) {
+      console.error('Grid element not found for unified container!');
+      return;
+    }
+    
+    // Create single unified container
+    const unifiedContainer = document.createElement('div');
+    unifiedContainer.className = 'cards-container unified-container';
+    unifiedContainer.setAttribute('data-category', 'unified');
+    unifiedContainer.style.cssText = `
+      display: none;
+      grid-template-columns: repeat(auto-fit, 140px);
+      gap: 20px;
+      margin: 1px 20px;
+      padding-top: 2px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease, max-height 0.5s ease;
+      justify-content: center;
+      justify-items: center;
+      width: calc(100% - 40px);
+      overflow: visible;
+    `;
+    
+    // Insert after grid
+    grid.parentNode?.insertBefore(unifiedContainer, grid.nextSibling);
+    
+    // Create and animate cards with staggered timing
+    allCards.forEach((cardData, index) => {
       setTimeout(() => {
-        dealCardsFromCategory(category, null);
-      }, index * 500); // Stagger the card dealing
+        const card = createCard(cardData, cardData.category, index);
+        unifiedContainer.appendChild(card);
+        
+        // Animate card from center position
+        const containerRect = unifiedContainer.getBoundingClientRect();
+        const gridRect = grid.getBoundingClientRect();
+        
+        const initialX = (gridRect.left + gridRect.width / 2) - (containerRect.left + containerRect.width / 2);
+        const initialY = (gridRect.top + gridRect.height / 2) - (containerRect.top + containerRect.height / 2);
+        
+        card.style.transform = `translate(${initialX}px, ${initialY}px) scale(0.5) rotateY(180deg)`;
+        card.style.opacity = '0';
+        
+        requestAnimationFrame(() => {
+          card.style.transition = 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
+          card.style.transform = 'translate(0, 0) scale(1) rotateY(0deg)';
+          card.style.opacity = '1';
+        });
+      }, index * 150);
     });
+    
+    // Show unified container
+    setTimeout(() => {
+      unifiedContainer.style.display = 'grid';
+      unifiedContainer.style.opacity = '1';
+      unifiedContainer.style.transform = 'translateY(0)';
+    }, 100);
   }
 
   // Run immediately and also on DOM ready
