@@ -4,6 +4,7 @@ use std::path::Path;
 use serde_yaml;
 use reqwest;
 use pulldown_cmark::{Parser, Options, html};
+use regex::Regex;
 use base64::Engine;
 use crate::models::*;
 
@@ -126,6 +127,9 @@ pub async fn fetch_github_project(repo: &GitHubRepo) -> Result<GitHubProject, Bo
             let decoded = base64::engine::general_purpose::STANDARD.decode(content.replace('\n', ""))?;
             let markdown_content = String::from_utf8(decoded)?;
             
+            // Process markdown to fix image URLs
+            let processed_markdown = process_github_images(&markdown_content, &repo.owner, &repo.repo);
+            
             // Convert markdown to HTML
             let mut options = Options::empty();
             options.insert(Options::ENABLE_STRIKETHROUGH);
@@ -133,10 +137,12 @@ pub async fn fetch_github_project(repo: &GitHubRepo) -> Result<GitHubProject, Bo
             options.insert(Options::ENABLE_FOOTNOTES);
             options.insert(Options::ENABLE_TASKLISTS);
             
-            let parser = Parser::new_ext(&markdown_content, options);
+            let parser = Parser::new_ext(&processed_markdown, options);
             let mut html_content = String::new();
             html::push_html(&mut html_content, parser);
-            html_content
+            
+            // Further process HTML to ensure all GitHub images work
+            process_github_html_images(&html_content, &repo.owner, &repo.repo)
         } else {
             "README not available".to_string()
         }
@@ -156,4 +162,65 @@ pub async fn fetch_github_project(repo: &GitHubRepo) -> Result<GitHubProject, Bo
         feature: repo.feature,
         image: repo.image.clone(),
     })
+}
+
+fn process_github_images(markdown: &str, owner: &str, repo: &str) -> String {
+    use regex::Regex;
+    
+    // Pattern to match markdown images: ![alt](src)
+    let img_regex = Regex::new(r"!\[([^\]]*)\]\(([^)]+)\)").unwrap();
+    
+    img_regex.replace_all(markdown, |caps: &regex::Captures| {
+        let alt = &caps[1];
+        let src = &caps[2];
+        
+        let new_src = convert_github_image_url(src, owner, repo);
+        format!("![{}]({})", alt, new_src)
+    }).to_string()
+}
+
+fn process_github_html_images(html: &str, owner: &str, repo: &str) -> String {
+    use regex::Regex;
+    
+    // Pattern to match HTML img tags: <img src="..." /> or <img src="..." >
+    let img_regex = Regex::new(r#"<img([^>]*?)src="([^"]*)"([^>]*?)/?>?"#).unwrap();
+    
+    img_regex.replace_all(html, |caps: &regex::Captures| {
+        let before_src = &caps[1];
+        let src = &caps[2];
+        let after_src = &caps[3];
+        
+        let new_src = convert_github_image_url(src, owner, repo);
+        format!(r#"<img{}src="{}"{}/>"#, before_src, new_src, after_src)
+    }).to_string()
+}
+
+fn convert_github_image_url(src: &str, owner: &str, repo: &str) -> String {
+    // If it's already a full URL, return as is
+    if src.starts_with("http://") || src.starts_with("https://") {
+        return src.to_string();
+    }
+    
+    // If it's a relative path, convert to GitHub raw URL
+    if src.starts_with("./") || src.starts_with("../") || !src.starts_with("/") {
+        // Remove leading "./" if present
+        let clean_src = src.strip_prefix("./").unwrap_or(src);
+        
+        // Handle "../" paths by going up directories (simplified - assume they want root)
+        let clean_src = if clean_src.starts_with("../") {
+            clean_src.strip_prefix("../").unwrap_or(clean_src)
+        } else {
+            clean_src
+        };
+        
+        return format!("https://raw.githubusercontent.com/{}/{}/main/{}", owner, repo, clean_src);
+    }
+    
+    // If it starts with "/", it's an absolute path in the repo
+    if src.starts_with("/") {
+        return format!("https://raw.githubusercontent.com/{}/{}/main{}", owner, repo, src);
+    }
+    
+    // Default case - treat as relative to repo root
+    format!("https://raw.githubusercontent.com/{}/{}/main/{}", owner, repo, src)
 }

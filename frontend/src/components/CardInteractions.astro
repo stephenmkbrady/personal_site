@@ -105,6 +105,78 @@
     }
   }
 
+  function scaleModalImages(modal: HTMLElement) {
+    const images = modal.querySelectorAll('img');
+    const videos = modal.querySelectorAll('video');
+    
+    // Get modal width to calculate 80% threshold
+    const modalContent = modal.querySelector('.modal-content') as HTMLElement;
+    if (!modalContent) return;
+    
+    const modalWidth = modalContent.offsetWidth;
+    const targetMaxWidth = Math.floor(modalWidth * 0.8);
+    
+    images.forEach(img => {
+      // Force load the image to get its natural dimensions
+      const tempImg = new Image();
+      tempImg.onload = () => {
+        const naturalWidth = tempImg.naturalWidth;
+        
+        // Apply responsive styling based on image size relative to modal
+        if (naturalWidth > targetMaxWidth) {
+          // Large images: scale down to 80% of modal width
+          img.style.setProperty('max-width', `${targetMaxWidth}px`, 'important');
+          img.style.setProperty('width', `${targetMaxWidth}px`, 'important');
+          img.style.setProperty('height', 'auto', 'important');
+        } else {
+          // Small images: keep original size, but don't exceed 80% modal width
+          img.style.setProperty('max-width', `${targetMaxWidth}px`, 'important');
+          img.style.setProperty('width', 'auto', 'important');
+          img.style.setProperty('height', 'auto', 'important');
+        }
+        
+        // Handle long/tall images - max height based on viewport
+        img.style.setProperty('max-height', 'calc(100vh - 200px)', 'important');
+        
+        // Maintain aspect ratio and prevent distortion
+        img.style.setProperty('object-fit', 'contain', 'important');
+        
+        // Center the image with margins
+        img.style.setProperty('display', 'block', 'important');
+        img.style.setProperty('margin', '15px auto', 'important');
+        img.style.setProperty('border-radius', '4px', 'important');
+        
+        // Ensure no horizontal scroll
+        img.style.setProperty('box-sizing', 'border-box', 'important');
+      };
+      
+      tempImg.src = img.src;
+    });
+    
+    // Handle videos with same scaling logic
+    videos.forEach(video => {
+      const videoWidth = video.videoWidth || video.offsetWidth || video.clientWidth;
+      
+      if (videoWidth > targetMaxWidth) {
+        // Large videos: scale down to 80% of modal width
+        video.style.setProperty('max-width', `${targetMaxWidth}px`, 'important');
+        video.style.setProperty('width', `${targetMaxWidth}px`, 'important');
+      } else {
+        // Small videos: keep original size but don't exceed threshold
+        video.style.setProperty('max-width', `${targetMaxWidth}px`, 'important');
+        video.style.setProperty('width', 'auto', 'important');
+      }
+      
+      video.style.setProperty('height', 'auto', 'important');
+      video.style.setProperty('max-height', 'calc(100vh - 200px)', 'important');
+      video.style.setProperty('object-fit', 'contain', 'important');
+      video.style.setProperty('display', 'block', 'important');
+      video.style.setProperty('margin', '15px auto', 'important');
+      video.style.setProperty('border-radius', '4px', 'important');
+      video.style.setProperty('box-sizing', 'border-box', 'important');
+    });
+  }
+
   async function openModal(card: HTMLElement) {
     card.classList.add('flipping');
     
@@ -202,15 +274,61 @@
       let contentUrl = '';
       
       if (category === 'github') {
-        // For GitHub, show repository info
-        contentUrl = '';
+        // For GitHub, use the readme_html directly from cardData
+        const modalContent = modal.querySelector('.modal-content') as HTMLElement;
+        modalContent.innerHTML = `
+          <button class="modal-close" style="
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            color: #fff;
+            font-size: 2rem;
+            cursor: pointer;
+            z-index: 10;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+          ">&times;</button>
+          <div class="modal-body" style="
+            padding: 60px 20px 30px 20px;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            color: #fff;
+            line-height: 1.6;
+            box-sizing: border-box;
+          ">
+            <div style="margin-bottom: 20px;">
+              <h1 style="color: #ffd700; margin-bottom: 10px;">${cardData.display_name || cardData.name || cardData.title}</h1>
+              <div style="display: flex; gap: 15px; margin-bottom: 15px; font-size: 0.9rem; color: #ccc;">
+                <span>⭐ ${cardData.stars || 0} stars</span>
+                <span>🍴 ${cardData.forks || 0} forks</span>
+                ${cardData.url ? `<a href="${cardData.url}" target="_blank" style="color: #ffd700; text-decoration: none;">View on GitHub →</a>` : ''}
+              </div>
+            </div>
+            <div class="markdown-content github-readme" style="border-top: 1px solid #333; padding-top: 20px;">${cardData.readme_html || 'README not available'}</div>
+          </div>
+        `;
+        
+        // Apply image scaling and syntax highlighting after modal content is loaded
+        setTimeout(() => {
+          scaleModalImages(modal);
+          // Apply syntax highlighting to code blocks
+          if (window.Prism) {
+            window.Prism.highlightAllUnder(modal);
+          }
+        }, 50);
       } else {
         // For other categories, load markdown content
         const slug = cardData.slug || cardData.title?.toLowerCase().replace(/\s+/g, '-');
         contentUrl = `http://localhost:4000/api/content/${category}/${slug}`;
-      }
-      
-      if (contentUrl) {
+        
         const response = await fetch(contentUrl);
         const contentData = await response.json();
         
@@ -236,50 +354,27 @@
             transition: all 0.3s ease;
           ">&times;</button>
           <div class="modal-body" style="
-            padding: 60px 30px 30px 30px;
+            padding: 60px 20px 30px 20px;
             height: 100%;
             overflow-y: auto;
+            overflow-x: hidden;
             color: #fff;
             line-height: 1.6;
+            box-sizing: border-box;
           ">
             <h1 style="color: #ffd700; margin-bottom: 20px;">${cardData.metadata?.title || cardData.title || cardData.name}</h1>
             <div class="markdown-content">${contentData.data?.html_content || contentData.content || contentData.html || contentData.html_content || 'No content available'}</div>
           </div>
         `;
-      } else {
-        // Show basic card info for GitHub
-        const modalContent = modal.querySelector('.modal-content') as HTMLElement;
-        modalContent.innerHTML = `
-          <button class="modal-close" style="
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            border: none;
-            color: #fff;
-            font-size: 2rem;
-            cursor: pointer;
-            z-index: 10;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: all 0.3s ease;
-          ">&times;</button>
-          <div class="modal-body" style="
-            padding: 60px 30px 30px 30px;
-            height: 100%;
-            overflow-y: auto;
-            color: #fff;
-            line-height: 1.6;
-          ">
-            <h1 style="color: #ffd700; margin-bottom: 20px;">${cardData.name || cardData.title}</h1>
-            <p style="font-size: 1.1rem; margin-bottom: 20px;">${cardData.description || 'No description available'}</p>
-            ${cardData.html_url ? `<a href="${cardData.html_url}" target="_blank" style="color: #ffd700; text-decoration: none;">View on GitHub →</a>` : ''}
-          </div>
-        `;
+        
+        // Apply image scaling and syntax highlighting after modal content is loaded
+        setTimeout(() => {
+          scaleModalImages(modal);
+          // Apply syntax highlighting to code blocks
+          if (window.Prism) {
+            window.Prism.highlightAllUnder(modal);
+          }
+        }, 50);
       }
     } catch (error) {
       console.error('Failed to load content:', error);

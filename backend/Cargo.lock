@@ -1322,6 +1322,7 @@ dependencies = [
  "env_logger",
  "jsonwebtoken",
  "pulldown-cmark",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",
