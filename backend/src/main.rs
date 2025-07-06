@@ -41,7 +41,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .wrap(
                 actix_web::middleware::DefaultHeaders::new()
-                    .add(("Access-Control-Allow-Origin", "*"))
+                    .add(("Access-Control-Allow-Origin", config_clone.frontend_url.as_str()))
                     .add(("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"))
                     .add(("Access-Control-Allow-Headers", "Content-Type, Authorization"))
             )

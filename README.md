@@ -4,6 +4,23 @@ A modern, high-performance personal portfolio website showcasing projects, blog 
 
 ## 🚀 Quick Start
 
+### Docker Compose (Recommended)
+```bash
+# Start both frontend and backend with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop containers
+docker-compose down
+
+# Run tests (containers must be running)
+cd backend && cargo test    # Backend API tests
+cd frontend && npm test     # Frontend E2E tests
+```
+
+### Local Development
 ```bash
 # Start backend server (port 4000)
 cd backend && cargo run
@@ -37,7 +54,8 @@ cd frontend && npm test     # Frontend E2E tests
 - **Frontend**: Astro with TypeScript (static site generation + hydration)
 - **Database**: File-based content management with in-memory caching
 - **Testing**: Cargo test (backend) + Playwright (frontend E2E)
-- **Deployment**: Containerized with Docker support
+- **Deployment**: Docker Compose with multi-stage builds and nginx proxy
+- **Configuration**: Environment variables with fail-fast validation
 
 ### Key Features
 - **GitHub Integration**: Automated repository showcase with README rendering
@@ -53,8 +71,11 @@ cd frontend && npm test     # Frontend E2E tests
 portfolio_website/
 ├── README.md                    # This file - project overview
 ├── CLAUDE.md                   # AI assistant context and instructions
+├── docker-compose.yml          # Container orchestration configuration
+├── .dockerignore               # Docker build exclusions
 ├── backend/                    # Rust API server
 │   ├── README.md                  # Detailed backend documentation
+│   ├── Dockerfile                 # Multi-stage Rust container build
 │   ├── Cargo.toml                # Rust dependencies and config
 │   ├── src/                      # Source code (607 lines)
 │   │   ├── main.rs                  # Server entry point and configuration
@@ -67,6 +88,8 @@ portfolio_website/
 │       └── working_test.rs         # 8 comprehensive API tests (100% passing)
 ├── frontend/                   # Astro static site with dynamic components
 │   ├── README.md                  # Detailed frontend documentation  
+│   ├── Dockerfile                 # Multi-stage Node.js + nginx container
+│   ├── nginx.conf                 # Nginx proxy configuration
 │   ├── package.json              # Node.js dependencies and scripts
 │   ├── astro.config.mjs          # Astro framework configuration
 │   ├── playwright.config.ts      # End-to-end test configuration
@@ -126,9 +149,128 @@ portfolio_website/
 - **Performance validation**: Sub-millisecond responses, optimized animations
 - **Browser compatibility**: Modern ES6+ features with graceful degradation
 
-## 🚀 Development Workflow
+## 🐳 Docker Compose Setup
 
 ### Prerequisites
+```bash
+# Docker and Docker Compose required
+docker --version        # Docker 20.0+ required
+docker-compose --version # Docker Compose 2.0+ required
+```
+
+### Container Architecture
+```yaml
+# docker-compose.yml
+services:
+  backend:
+    build: ./backend
+    ports: ["4000:4000"]
+    environment:
+      - HOST=0.0.0.0
+      - PORT=4000
+      - CONTENT_PATH=/app/content
+      - FRONTEND_URL=http://localhost:3000
+    volumes:
+      - ./content:/app/content:ro
+
+  frontend:
+    build: ./frontend  
+    ports: ["3000:80"]
+    depends_on: [backend]
+    # Nginx proxy: /api/* → backend:4000
+```
+
+### Docker Commands
+```bash
+# Start services (detached mode)
+docker-compose up -d
+
+# View real-time logs
+docker-compose logs -f
+docker-compose logs backend  # Backend only
+docker-compose logs frontend # Frontend only
+
+# Restart specific service
+docker-compose restart backend
+docker-compose restart frontend
+
+# Rebuild and restart (after code changes)
+docker-compose down
+docker-compose build
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+
+# View container status
+docker-compose ps
+docker ps
+```
+
+### Testing with Docker
+```bash
+# Backend tests (containers running)
+cd backend && cargo test
+
+# Frontend tests (against running containers)
+cd frontend && npm test
+
+# Check API endpoints
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/github/projects
+
+# View application
+open http://localhost:3000
+```
+
+### Environment Configuration
+```bash
+# Backend environment variables (docker-compose.yml)
+HOST=0.0.0.0                    # Listen on all interfaces
+PORT=4000                       # Backend port
+CONTENT_PATH=/app/content       # Content directory path
+FRONTEND_PATH=/app/frontend     # Frontend static files path  
+FRONTEND_URL=http://localhost:3000  # CORS allowed origin
+RUST_LOG=info                   # Logging level
+
+# Frontend environment variables
+PUBLIC_API_BASE_URL=http://localhost:4000  # Backend API URL (internal)
+```
+
+### Container Details
+```bash
+# Backend Container (Rust multi-stage build)
+FROM rust:latest as builder
+WORKDIR /app
+COPY Cargo.toml ./
+COPY src ./src
+RUN cargo build --release
+
+FROM debian:bookworm-slim
+COPY --from=builder /app/target/release/portfolio-backend .
+EXPOSE 4000
+CMD ["./portfolio-backend"]
+
+# Frontend Container (Node.js + nginx)
+FROM node:18-alpine as builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+```
+
+## 🚀 Development Workflow
+
+### Prerequisites (Local Development)
 ```bash
 # Backend requirements
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh  # Rust toolchain
@@ -156,19 +298,54 @@ npm run build      # Production build
 ```
 
 ### Testing Workflow
-```bash
-# Full test suite (run from project root)
-(cd backend && cargo test) && (cd frontend && npm test)
 
-# Backend-only testing
+#### Docker Testing (Recommended)
+```bash
+# Start containers first
+docker-compose up -d
+
+# Full test suite (containers running)
+cd backend && cargo test
+cd frontend && npm test
+
+# Backend API tests
 cd backend && cargo test -- --nocapture
 
-# Frontend-only testing with UI
+# Frontend E2E tests with UI
 cd frontend && npm test -- --ui
 
 # Generate test reports
 cd frontend && npm test -- --reporter=html
 npx playwright show-report
+
+# Stop containers when done
+docker-compose down
+```
+
+#### Local Testing
+```bash
+# Start services locally
+cd backend && cargo run &
+cd frontend && npm run dev &
+
+# Run tests
+(cd backend && cargo test) && (cd frontend && npm test)
+
+# Kill local services
+pkill -f cargo
+pkill -f node
+```
+
+#### Test Results Verification
+```bash
+# Check all endpoints are working
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/github/projects
+curl http://localhost:3000/api/content/project
+curl http://localhost:3000/api/content/tags
+
+# View application in browser
+open http://localhost:3000
 ```
 
 ## 🔧 Configuration
@@ -218,47 +395,96 @@ For detailed information about each component:
 
 ## 🚀 Deployment
 
-### Production Build
+### Docker Production Deployment
+```bash
+# Production environment setup
+cp docker-compose.yml docker-compose.prod.yml
+
+# Update environment variables for production
+edit docker-compose.prod.yml:
+  environment:
+    - HOST=0.0.0.0
+    - PORT=4000
+    - CONTENT_PATH=/app/content
+    - FRONTEND_URL=https://yoursite.com
+    - RUST_LOG=info
+    - GITHUB_TOKEN=your_production_token
+
+# Deploy with production config
+docker-compose -f docker-compose.prod.yml up -d
+
+# Monitor logs
+docker-compose -f docker-compose.prod.yml logs -f
+```
+
+### Local Production Build
 ```bash
 # Backend production build
 cd backend && cargo build --release
 
 # Frontend production build  
 cd frontend && npm run build
+
+# Test production builds locally
+cd backend && ./target/release/portfolio-backend
+cd frontend && npm run preview
 ```
 
-### Docker Deployment
-```dockerfile
-# Backend container
-FROM rust:1.70 as builder
-WORKDIR /app
-COPY backend/ .
-RUN cargo build --release
-
-FROM debian:bookworm-slim
-COPY --from=builder /app/target/release/portfolio-backend /usr/local/bin/
-EXPOSE 4000
-CMD ["portfolio-backend"]
-```
-
-### Environment Setup
+### Production Environment Variables
 ```bash
-# Production environment variables
+# Backend production configuration
+HOST=0.0.0.0
+PORT=4000
+CONTENT_PATH=/app/content
+FRONTEND_PATH=/app/frontend
+FRONTEND_URL=https://yoursite.com
 RUST_LOG=info
 GITHUB_TOKEN=your_production_token
+
+# Frontend production configuration
 PUBLIC_API_BASE_URL=https://api.yoursite.com
+```
+
+### Security Considerations
+```bash
+# CORS is now properly configured to only allow frontend domain
+# Access-Control-Allow-Origin: https://yoursite.com (not *)
+
+# Environment variables for secrets
+GITHUB_TOKEN=ghp_your_token_here
+JWT_SECRET=your_jwt_secret_here
+
+# Content directory is mounted read-only
+volumes:
+  - ./content:/app/content:ro
 ```
 
 ---
 
 ## 🎯 Current Status: Production Ready
 
-This portfolio website is fully functional with comprehensive test coverage, optimized performance, and production-ready architecture. Both backend and frontend components have achieved 100% test coverage and are ready for deployment.
+This portfolio website is fully functional with comprehensive test coverage, optimized performance, and production-ready Docker architecture. Both backend and frontend components have achieved 100% test coverage and are containerized for easy deployment.
 
 **Key Achievements:**
-- ✅ Complete API functionality with error handling
-- ✅ Interactive UI with advanced visual effects  
-- ✅ Comprehensive test coverage (20 total tests)
-- ✅ Performance optimizations and caching
-- ✅ Responsive design and accessibility
-- ✅ Production-ready deployment configuration
+- ✅ **Docker Compose Setup** - Complete containerization with multi-stage builds
+- ✅ **Environment Variables** - Configurable paths and CORS security
+- ✅ **Complete API functionality** - All endpoints tested and error handling
+- ✅ **Interactive UI** - Advanced visual effects and responsive design  
+- ✅ **Comprehensive test coverage** - 20 total tests (8 backend + 12 frontend)
+- ✅ **Performance optimizations** - Sub-millisecond API responses and caching
+- ✅ **Security** - CORS properly configured, read-only content mounting
+- ✅ **Production deployment** - Docker containers ready for cloud deployment
+
+**Quick Start:**
+```bash
+# Get started in 30 seconds
+git clone <repository>
+cd portfolio_website
+docker-compose up -d
+open http://localhost:3000
+```
+
+**Access URLs:**
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:4000  
+- **Health Check**: http://localhost:3000/api/health
