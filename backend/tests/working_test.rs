@@ -3,6 +3,16 @@ use portfolio_backend::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+fn create_test_config() -> AppConfig {
+    AppConfig {
+        host: "127.0.0.1".to_string(),
+        port: 4000,
+        content_path: "../content".to_string(),
+        frontend_path: "../frontend".to_string(),
+        frontend_url: "http://localhost:3000".to_string(),
+    }
+}
+
 #[actix_web::test]
 async fn test_health_endpoint_works() {
     let github_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedGithubProject>::new()));
@@ -35,11 +45,13 @@ async fn test_health_endpoint_works() {
 async fn test_content_projects_endpoint_works() {
     let github_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedGithubProject>::new()));
     let content_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedContent>::new()));
+    let app_config = web::Data::new(create_test_config());
 
     let app = test::init_service(
         App::new()
             .app_data(github_cache)
             .app_data(content_cache)
+            .app_data(app_config)
             .route("/api/content/{category}", web::get().to(get_content_list))
     ).await;
     
@@ -63,11 +75,13 @@ async fn test_content_projects_endpoint_works() {
 async fn test_content_specific_project_works() {
     let github_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedGithubProject>::new()));
     let content_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedContent>::new()));
+    let app_config = web::Data::new(create_test_config());
 
     let app = test::init_service(
         App::new()
             .app_data(github_cache)
             .app_data(content_cache)
+            .app_data(app_config)
             .route("/api/content/{category}/{slug}", web::get().to(get_content_item))
     ).await;
     
@@ -94,11 +108,13 @@ async fn test_content_specific_project_works() {
 async fn test_content_tags_endpoint_works() {
     let github_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedGithubProject>::new()));
     let content_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedContent>::new()));
+    let app_config = web::Data::new(create_test_config());
 
     let app = test::init_service(
         App::new()
             .app_data(github_cache)
             .app_data(content_cache)
+            .app_data(app_config)
             .route("/api/content/tags", web::get().to(get_content_tags))
     ).await;
     
@@ -122,11 +138,13 @@ async fn test_content_tags_endpoint_works() {
 async fn test_github_projects_endpoint_works() {
     let github_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedGithubProject>::new()));
     let content_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedContent>::new()));
+    let app_config = web::Data::new(create_test_config());
 
     let app = test::init_service(
         App::new()
             .app_data(github_cache)
             .app_data(content_cache)
+            .app_data(app_config)
             .route("/api/github/projects", web::get().to(get_github_projects))
     ).await;
     
@@ -154,11 +172,13 @@ async fn test_github_projects_endpoint_works() {
 async fn test_admin_refresh_github_works() {
     let github_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedGithubProject>::new()));
     let content_cache = web::Data::new(Mutex::new(HashMap::<String, portfolio_backend::CachedContent>::new()));
+    let app_config = web::Data::new(create_test_config());
 
     let app = test::init_service(
         App::new()
             .app_data(github_cache)
             .app_data(content_cache)
+            .app_data(app_config)
             .route("/api/admin/refresh-github", web::post().to(refresh_github_cache))
     ).await;
     

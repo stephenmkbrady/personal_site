@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('GitHub cards should appear on the homepage', async ({ page }) => {
-  await page.goto('http://localhost:3003');
+  await page.goto('http://localhost:3000');
 
   // Wait for auto-loading to complete (cards are auto-loaded, no click needed)
   await page.waitForTimeout(3000);

@@ -8,8 +8,8 @@ use regex::Regex;
 use base64::Engine;
 use crate::models::*;
 
-pub fn get_content_files(category: &str) -> Result<Vec<String>, io::Error> {
-    let content_dir = format!("../content/{}", category);
+pub fn get_content_files(category: &str, content_path: &str) -> Result<Vec<String>, io::Error> {
+    let content_dir = format!("{}/{}", content_path, category);
     let mut files = Vec::new();
     
     if let Ok(entries) = fs::read_dir(&content_dir) {
@@ -88,9 +88,9 @@ pub fn parse_markdown_file(file_path: &str, category: &str) -> Result<ContentIte
     })
 }
 
-pub fn load_github_config() -> Result<GitHubConfig, Box<dyn std::error::Error>> {
-    let config_path = "../content/github/config.yaml";
-    let config_content = fs::read_to_string(config_path)?;
+pub fn load_github_config(content_path: &str) -> Result<GitHubConfig, Box<dyn std::error::Error>> {
+    let config_path = format!("{}/github/config.yaml", content_path);
+    let config_content = fs::read_to_string(&config_path)?;
     let config: GitHubConfig = serde_yaml::from_str(&config_content)?;
     Ok(config)
 }

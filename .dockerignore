@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment
+.env
+.env.local
+.env.example
+
+# Logs
+*.log
+logs/
+
+# Test results
+test-results/
+playwright-report/
+
+# Node modules (will be installed in container)
+node_modules/
+npm-debug.log*
+
+# Rust target directory (will be built in container)
+target/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

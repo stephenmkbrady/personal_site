@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: portfolio-backend
+    environment:
+      - HOST=0.0.0.0
+      - PORT=4000
+      - CONTENT_PATH=/app/content
+      - FRONTEND_PATH=/app/frontend
+      - FRONTEND_URL=http://localhost:3000
+      - RUST_LOG=info
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./content:/app/content:ro
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: portfolio-frontend
+    environment:
+      - PUBLIC_API_BASE_URL=http://localhost:4000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+
+networks:
+  portfolio-network:
+    driver: bridge
+
+volumes:
+  content-data:

@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use crate::models::*;
 use crate::utils::*;
+use crate::AppConfig;
 
 pub async fn health_check() -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().json(ApiResponse::success("Server is running")))
@@ -12,15 +13,16 @@ pub async fn health_check() -> Result<HttpResponse> {
 pub async fn get_content_list(
     path: web::Path<String>,
     content_cache: web::Data<Mutex<HashMap<String, CachedContent>>>,
+    app_config: web::Data<AppConfig>,
 ) -> Result<HttpResponse> {
     let category = path.into_inner();
     
-    match get_content_files(&category) {
+    match get_content_files(&category, &app_config.content_path) {
         Ok(files) => {
             let mut content_items = Vec::new();
             
             for file in files {
-                let file_path = format!("../content/{}/{}", category, file);
+                let file_path = format!("{}/{}/{}", app_config.content_path, category, file);
                 match parse_markdown_file(&file_path, &category) {
                     Ok(content) => content_items.push(content),
                     Err(e) => {
@@ -44,6 +46,7 @@ pub async fn get_content_list(
 pub async fn get_content_item(
     path: web::Path<(String, String)>,
     content_cache: web::Data<Mutex<HashMap<String, CachedContent>>>,
+    app_config: web::Data<AppConfig>,
 ) -> Result<HttpResponse> {
     let (category, slug) = path.into_inner();
     let cache_key = format!("{}/{}", category, slug);
@@ -60,7 +63,7 @@ pub async fn get_content_item(
     }
     
     // Load from file
-    let file_path = format!("../content/{}/{}.md", category, slug);
+    let file_path = format!("{}/{}/{}.md", app_config.content_path, category, slug);
     match parse_markdown_file(&file_path, &category) {
         Ok(content) => {
             // Update cache
@@ -84,14 +87,15 @@ pub async fn get_content_item(
 
 pub async fn get_content_tags(
     content_cache: web::Data<Mutex<HashMap<String, CachedContent>>>,
+    app_config: web::Data<AppConfig>,
 ) -> Result<HttpResponse> {
     let mut all_tags = std::collections::HashSet::new();
     
     // Get tags from all categories
     for category in &["project", "blog"] {
-        if let Ok(files) = get_content_files(category) {
+        if let Ok(files) = get_content_files(category, &app_config.content_path) {
             for file in files {
-                let file_path = format!("../content/{}/{}", category, file);
+                let file_path = format!("{}/{}/{}", app_config.content_path, category, file);
                 if let Ok(content) = parse_markdown_file(&file_path, category) {
                     for tag in content.metadata.tags {
                         all_tags.insert(tag);
@@ -109,9 +113,10 @@ pub async fn get_content_tags(
 
 pub async fn get_github_projects(
     github_cache: web::Data<Mutex<HashMap<String, CachedGithubProject>>>,
+    app_config: web::Data<AppConfig>,
 ) -> Result<HttpResponse> {
     // Load GitHub config
-    let config = match load_github_config() {
+    let config = match load_github_config(&app_config.content_path) {
         Ok(config) => config,
         Err(e) => {
             return Ok(HttpResponse::InternalServerError().json(
@@ -189,6 +194,7 @@ pub async fn get_github_projects(
 
 pub async fn refresh_github_cache(
     github_cache: web::Data<Mutex<HashMap<String, CachedGithubProject>>>,
+    app_config: web::Data<AppConfig>,
 ) -> Result<HttpResponse> {
     // Clear the cache
     {

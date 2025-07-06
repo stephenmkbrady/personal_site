@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Card Display and Modal Tests', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3003');
+    await page.goto('http://localhost:3000');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(3000); // Wait for auto-loading to complete
   });
