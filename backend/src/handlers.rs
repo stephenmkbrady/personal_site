@@ -17,16 +17,32 @@ pub async fn get_content_list(
 ) -> Result<HttpResponse> {
     let category = path.into_inner();
     
+    // Validate category parameter
+    if let Err(validation_error) = validate_category(&category) {
+        return Ok(HttpResponse::BadRequest().json(
+            ApiResponse::<()>::error(&format!("Invalid category parameter: {}", validation_error))
+        ));
+    }
+    
     match get_content_files(&category, &app_config.content_path) {
         Ok(files) => {
             let mut content_items = Vec::new();
             
             for file in files {
-                let file_path = format!("{}/{}/{}", app_config.content_path, category, file);
-                match parse_markdown_file(&file_path, &category) {
-                    Ok(content) => content_items.push(content),
+                // Use safe path creation for additional security
+                let file_stem = file.trim_end_matches(".md");
+                match create_safe_content_path(&app_config.content_path, &category, Some(file_stem)) {
+                    Ok(file_path) => {
+                        match parse_markdown_file(&file_path, &category) {
+                            Ok(content) => content_items.push(content),
+                            Err(e) => {
+                                eprintln!("Error parsing {}: {}", file_path, e);
+                                continue;
+                            }
+                        }
+                    }
                     Err(e) => {
-                        eprintln!("Error parsing {}: {}", file_path, e);
+                        eprintln!("Invalid file path for {}: {}", file, e);
                         continue;
                     }
                 }
@@ -49,6 +65,20 @@ pub async fn get_content_item(
     app_config: web::Data<AppConfig>,
 ) -> Result<HttpResponse> {
     let (category, slug) = path.into_inner();
+    
+    // Validate category and slug parameters
+    if let Err(validation_error) = validate_category(&category) {
+        return Ok(HttpResponse::BadRequest().json(
+            ApiResponse::<()>::error(&format!("Invalid category parameter: {}", validation_error))
+        ));
+    }
+    
+    if let Err(validation_error) = validate_slug(&slug) {
+        return Ok(HttpResponse::BadRequest().json(
+            ApiResponse::<()>::error(&format!("Invalid slug parameter: {}", validation_error))
+        ));
+    }
+    
     let cache_key = format!("{}/{}", category, slug);
     
     // Check cache first
@@ -62,8 +92,16 @@ pub async fn get_content_item(
         }
     }
     
-    // Load from file
-    let file_path = format!("{}/{}/{}.md", app_config.content_path, category, slug);
+    // Create safe file path
+    let file_path = match create_safe_content_path(&app_config.content_path, &category, Some(&slug)) {
+        Ok(path) => path,
+        Err(validation_error) => {
+            return Ok(HttpResponse::BadRequest().json(
+                ApiResponse::<()>::error(&format!("Invalid file path: {}", validation_error))
+            ));
+        }
+    };
+    
     match parse_markdown_file(&file_path, &category) {
         Ok(content) => {
             // Update cache
@@ -93,12 +131,19 @@ pub async fn get_content_tags(
     
     // Get tags from all categories
     for category in &["project", "blog"] {
+        // Validate each category (should be safe since we control the list, but good practice)
+        if validate_category(category).is_err() {
+            continue;
+        }
+        
         if let Ok(files) = get_content_files(category, &app_config.content_path) {
             for file in files {
-                let file_path = format!("{}/{}/{}", app_config.content_path, category, file);
-                if let Ok(content) = parse_markdown_file(&file_path, category) {
-                    for tag in content.metadata.tags {
-                        all_tags.insert(tag);
+                let file_stem = file.trim_end_matches(".md");
+                if let Ok(file_path) = create_safe_content_path(&app_config.content_path, category, Some(file_stem)) {
+                    if let Ok(content) = parse_markdown_file(&file_path, category) {
+                        for tag in content.metadata.tags {
+                            all_tags.insert(tag);
+                        }
                     }
                 }
             }

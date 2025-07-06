@@ -8,6 +8,119 @@ use regex::Regex;
 use base64::Engine;
 use crate::models::*;
 
+/// Input validation error types
+#[derive(Debug)]
+pub enum ValidationError {
+    InvalidCategory(String),
+    InvalidSlug(String),
+    PathTraversal(String),
+    TooLong(String),
+}
+
+impl std::fmt::Display for ValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ValidationError::InvalidCategory(msg) => write!(f, "Invalid category: {}", msg),
+            ValidationError::InvalidSlug(msg) => write!(f, "Invalid slug: {}", msg),
+            ValidationError::PathTraversal(msg) => write!(f, "Path traversal detected: {}", msg),
+            ValidationError::TooLong(msg) => write!(f, "Input too long: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for ValidationError {}
+
+/// Validates category parameter
+/// Categories must be alphanumeric with hyphens/underscores only
+pub fn validate_category(category: &str) -> Result<(), ValidationError> {
+    // Check length
+    if category.is_empty() {
+        return Err(ValidationError::InvalidCategory("Category cannot be empty".to_string()));
+    }
+    if category.len() > 50 {
+        return Err(ValidationError::TooLong("Category name too long".to_string()));
+    }
+    
+    // Check for path traversal
+    if category.contains("..") || category.contains('/') || category.contains('\\') {
+        return Err(ValidationError::PathTraversal("Category contains path traversal characters".to_string()));
+    }
+    
+    // Only allow alphanumeric, hyphens, and underscores
+    let valid_chars = regex::Regex::new(r"^[a-zA-Z0-9_-]+$").unwrap();
+    if !valid_chars.is_match(category) {
+        return Err(ValidationError::InvalidCategory("Category must contain only letters, numbers, hyphens, and underscores".to_string()));
+    }
+    
+    // Check against whitelist of allowed categories
+    let allowed_categories = ["project", "blog", "page"];
+    if !allowed_categories.contains(&category) {
+        return Err(ValidationError::InvalidCategory(format!("Category '{}' not allowed. Allowed: {:?}", category, allowed_categories)));
+    }
+    
+    Ok(())
+}
+
+/// Validates slug parameter
+/// Slugs must be URL-safe and prevent path traversal
+pub fn validate_slug(slug: &str) -> Result<(), ValidationError> {
+    // Check length
+    if slug.is_empty() {
+        return Err(ValidationError::InvalidSlug("Slug cannot be empty".to_string()));
+    }
+    if slug.len() > 100 {
+        return Err(ValidationError::TooLong("Slug too long".to_string()));
+    }
+    
+    // Check for path traversal
+    if slug.contains("..") || slug.contains('/') || slug.contains('\\') {
+        return Err(ValidationError::PathTraversal("Slug contains path traversal characters".to_string()));
+    }
+    
+    // Check for null bytes and other dangerous characters
+    if slug.contains('\0') || slug.contains('\n') || slug.contains('\r') {
+        return Err(ValidationError::InvalidSlug("Slug contains invalid characters".to_string()));
+    }
+    
+    // Only allow URL-safe characters: alphanumeric, hyphens, underscores, and dots
+    let valid_chars = regex::Regex::new(r"^[a-zA-Z0-9._-]+$").unwrap();
+    if !valid_chars.is_match(slug) {
+        return Err(ValidationError::InvalidSlug("Slug must contain only letters, numbers, dots, hyphens, and underscores".to_string()));
+    }
+    
+    // Prevent starting or ending with dots (hidden files)
+    if slug.starts_with('.') || slug.ends_with('.') {
+        return Err(ValidationError::InvalidSlug("Slug cannot start or end with dots".to_string()));
+    }
+    
+    Ok(())
+}
+
+/// Creates a safe file path by validating and joining components
+pub fn create_safe_content_path(content_base: &str, category: &str, filename: Option<&str>) -> Result<String, ValidationError> {
+    validate_category(category)?;
+    
+    let mut path = format!("{}/{}", content_base, category);
+    
+    if let Some(file) = filename {
+        validate_slug(file)?;
+        path = format!("{}/{}.md", path, file);
+    }
+    
+    // Final safety check: ensure the resolved path stays within content directory
+    let canonical_base = std::path::Path::new(content_base).canonicalize()
+        .map_err(|_| ValidationError::PathTraversal("Invalid content base path".to_string()))?;
+    
+    let canonical_target = std::path::Path::new(&path).canonicalize();
+    if let Ok(target) = canonical_target {
+        if !target.starts_with(&canonical_base) {
+            return Err(ValidationError::PathTraversal("Path escapes content directory".to_string()));
+        }
+    }
+    
+    Ok(path)
+}
+
 pub fn get_content_files(category: &str, content_path: &str) -> Result<Vec<String>, io::Error> {
     let content_dir = format!("{}/{}", content_path, category);
     let mut files = Vec::new();
