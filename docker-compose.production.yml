@@ -1,0 +1,187 @@
+# Full stack deployment with Portfolio, Nginx Proxy Manager, and SimpleX Chat services
+
+services:
+  # =============================================================================
+  # PORTFOLIO WEBSITE SERVICES
+  # =============================================================================
+  
+  portfolio-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ${BACKEND_CONTAINER_NAME:-portfolio-backend}
+    environment:
+      - HOST=${HOST:-0.0.0.0}
+      - PORT=${BACKEND_PORT:-4000}
+      - CONTENT_PATH=${CONTENT_PATH:-/app/content}
+      - FRONTEND_PATH=${FRONTEND_PATH:-/app/frontend}
+      - FRONTEND_URL=${FRONTEND_URL:-https://www.your-domain.com}
+      - RUST_LOG=${RUST_LOG:-info}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    volumes:
+      - ./content:/app/content:ro
+    networks:
+      - web-proxy
+      - portfolio-internal
+    restart: unless-stopped
+
+  portfolio-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ${FRONTEND_CONTAINER_NAME:-portfolio-frontend}
+    depends_on:
+      - portfolio-backend
+    networks:
+      - web-proxy
+      - portfolio-internal
+    restart: unless-stopped
+
+  # =============================================================================
+  # NGINX PROXY MANAGER (HTTPS/SSL Management)
+  # =============================================================================
+  
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: ${NPM_CONTAINER_NAME:-nginx-proxy-manager}
+    restart: unless-stopped
+    ports:
+      - '80:80'     # HTTP
+      - '443:443'   # HTTPS
+      - '${NPM_ADMIN_PORT:-81}:81'     # Admin panel
+    environment:
+      - DB_MYSQL_HOST=npm-db
+      - DB_MYSQL_PORT=3306
+      - DB_MYSQL_USER=npm
+      - DB_MYSQL_PASSWORD=${NPM_DB_PASSWORD:-secure_password_change_me}
+      - DB_MYSQL_NAME=npm
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - web-proxy
+      - npm-internal
+    depends_on:
+      - npm-db
+
+  # Database for Nginx Proxy Manager
+  npm-db:
+    image: 'jc21/mariadb-aria:latest'
+    container_name: ${NPM_DB_CONTAINER_NAME:-npm-db}
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${NPM_DB_ROOT_PASSWORD:-root_password_change_me}
+      - MYSQL_DATABASE=npm
+      - MYSQL_USER=npm
+      - MYSQL_PASSWORD=${NPM_DB_PASSWORD:-secure_password_change_me}
+    volumes:
+      - npm-db-data:/var/lib/mysql
+    networks:
+      - npm-internal
+
+  # =============================================================================
+  # SIMPLEX CHAT SERVICES
+  # =============================================================================
+  
+  smp-server:
+    image: simplexchat/smp-server:latest
+    container_name: ${SMP_CONTAINER_NAME:-smp-server}
+    environment:
+      - WEB_MANUAL=${WEB_MANUAL:-1}
+      - ADDR=${SMP_ADDR}
+      - PASS=${SMP_PASS:-}
+    volumes:
+      - ./smp_configs:/etc/opt/simplex
+      - ./smp_state:/var/opt/simplex
+    ports:
+      - "${SMP_PORT:-5223}:5223"
+    networks:
+      - simplex-network
+    restart: unless-stopped
+
+  xftp-server:
+    image: simplexchat/xftp-server:latest
+    container_name: ${XFTP_CONTAINER_NAME:-xftp-server}
+    environment:
+      - ADDR=${XFTP_ADDR}
+      - QUOTA=${XFTP_QUOTA:-10gb}
+    volumes:
+      - ./xftp_configs:/etc/opt/simplex-xftp
+      - ./xftp_state:/var/opt/simplex-xftp
+      - ./xftp_files:/srv/xftp
+    ports:
+      - "${XFTP_PORT:-4443}:443"
+    networks:
+      - simplex-network
+    restart: unless-stopped
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+
+networks:
+  # Main web proxy network - all web services that need HTTPS
+  web-proxy:
+    driver: bridge
+    name: web-proxy
+    
+  # Internal portfolio communication
+  portfolio-internal:
+    driver: bridge
+    internal: true
+    
+  # Internal nginx proxy manager communication
+  npm-internal:
+    driver: bridge
+    internal: true
+    
+  # SimpleX Chat services network
+  simplex-network:
+    driver: bridge
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+
+volumes:
+  # Nginx Proxy Manager data
+  npm-data:
+    driver: local
+  npm-letsencrypt:
+    driver: local
+  npm-db-data:
+    driver: local
+
+# =============================================================================
+# ENVIRONMENT VARIABLES REFERENCE
+# =============================================================================
+
+# Create a .env file in the same directory with these variables:
+#
+# # Portfolio Website Configuration
+# FRONTEND_URL=https://www.your-domain.com
+# GITHUB_TOKEN=your_github_token_here
+# RUST_LOG=info
+#
+# # Nginx Proxy Manager Database
+# NPM_DB_PASSWORD=secure_password_change_me
+# NPM_DB_ROOT_PASSWORD=root_password_change_me
+#
+# # SimpleX Chat Configuration
+# SMP_ADDR=smp.your-domain.com
+# XFTP_ADDR=xftp.your-domain.com
+# SMP_PASS=your_smp_password
+#
+# # Optional Port Overrides
+# # NPM_ADMIN_PORT=81
+# # SMP_PORT=5223
+# # XFTP_PORT=4443
+# # BACKEND_PORT=4000
+#
+# # Optional Container Name Overrides
+# # BACKEND_CONTAINER_NAME=portfolio-backend
+# # FRONTEND_CONTAINER_NAME=portfolio-frontend
+# # NPM_CONTAINER_NAME=nginx-proxy-manager
+# # NPM_DB_CONTAINER_NAME=npm-db
+# # SMP_CONTAINER_NAME=smp-server
+# # XFTP_CONTAINER_NAME=xftp-server
