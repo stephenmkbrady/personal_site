@@ -7,11 +7,14 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Clean install dependencies
+RUN npm ci --only=production=false
 
-# Copy source code
+# Copy source code (excluding node_modules via .dockerignore)
 COPY . .
+
+# Remove any existing node_modules and reinstall to be safe
+RUN rm -rf node_modules && npm ci
 
 # Build the application
 RUN npm run build

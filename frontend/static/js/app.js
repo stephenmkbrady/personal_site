@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = '/api';
 
 // Utility function to make API calls
 async function apiCall(endpoint, options = {}) {

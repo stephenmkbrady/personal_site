@@ -1,0 +1,11 @@
+node_modules/
+npm-debug.log*
+.npm
+dist/
+.astro/
+test-results/
+playwright-report/
+.env
+.env.local
+.env.production
+*.log

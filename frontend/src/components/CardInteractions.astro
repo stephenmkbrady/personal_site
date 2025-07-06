@@ -377,7 +377,7 @@
       } else {
         // For other categories, load markdown content
         const slug = cardData.slug || cardData.title?.toLowerCase().replace(/\s+/g, '-');
-        contentUrl = `http://localhost:4000/api/content/${category}/${slug}`;
+        contentUrl = `/api/content/${category}/${slug}`;
         
         const response = await fetch(contentUrl);
         const contentData = await response.json();
@@ -617,8 +617,8 @@
     
     // Fetch content from backend API
     const apiUrl = category === 'github' ? 
-      'http://localhost:4000/api/github/projects' : 
-      `http://localhost:4000/api/content/${category}`;
+      '/api/github/projects' : 
+      `/api/content/${category}`;
     
     console.log('Fetching from API:', apiUrl);
     
@@ -970,8 +970,8 @@
       // Fetch all categories simultaneously
       const allPromises = categories.map(async (category) => {
         const apiUrl = category === 'github' ? 
-          'http://localhost:4000/api/github/projects' : 
-          `http://localhost:4000/api/content/${category}`;
+          '/api/github/projects' : 
+          `/api/content/${category}`;
           
         console.log('Fetching unified data from:', apiUrl);
         const response = await fetch(apiUrl);
