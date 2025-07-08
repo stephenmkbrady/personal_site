@@ -7,6 +7,7 @@
   let activeCategories = new Set();
   let cardContainers = new Map();
   let initialized = false;
+  let themeListenerInitialized = false;
 
   function handleThrottledHolo(card: HTMLElement, rotateX: number, rotateY: number) {
     if (throttleTimeout) return;
@@ -698,8 +699,8 @@
       console.error('Failed to fetch content:', error);
       // Fallback to mock data on error
       const mockCards = [
-        { title: `${category} Item 1`, image: '/placeholder.jpg', description: 'Sample description' },
-        { title: `${category} Item 2`, image: '/placeholder.jpg', description: 'Sample description' }
+        { title: `${category} Item 1`, description: 'Sample description' },
+        { title: `${category} Item 2`, description: 'Sample description' }
       ];
       
       mockCards.forEach((cardData, index) => {
@@ -807,6 +808,13 @@
     }, cards.length * 100 + 200);
   }
   
+  // Function to get theme-appropriate placeholder image
+  function getThemeAwarePlaceholder(): string {
+    // Check if document element has light theme attribute
+    const isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
+    return isLightTheme ? '/light/card.jpg' : '/dark/card.jpg';
+  }
+
   function createCard(cardData: any, category: string, index: number) {
     const card = document.createElement('div');
     
@@ -827,12 +835,12 @@
     
     if (category === 'github') {
       title = cardData.display_name || cardData.name || cardData.title || 'GitHub Project';
-      image = cardData.image || '/placeholder.jpg';
+      image = cardData.image || getThemeAwarePlaceholder();
       description = cardData.description || 'GitHub repository';
     } else {
       // For content items, data is in cardData.metadata
       title = cardData.metadata?.title || cardData.title || cardData.name || 'Content Item';
-      image = cardData.metadata?.image || cardData.image || '/placeholder.jpg';
+      image = cardData.metadata?.image || cardData.image || getThemeAwarePlaceholder();
       description = cardData.metadata?.description || cardData.description || 'Content description';
     }
     
@@ -1078,6 +1086,40 @@
     });
   }
 
+  // Function to update card images when theme changes
+  function updateCardImagesForTheme() {
+    const cards = document.querySelectorAll('.card');
+    
+    cards.forEach(card => {
+      const cardData = card.getAttribute('data-full-content');
+      if (!cardData) return;
+      
+      try {
+        const data = JSON.parse(cardData);
+        const image = card.querySelector('.card-image') as HTMLImageElement;
+        if (!image) return;
+        
+        // Check if this card should use theme-aware placeholder
+        let shouldUseThemePlaceholder = false;
+        
+        if (data.category === 'github') {
+          // GitHub items use theme placeholder if no image specified
+          shouldUseThemePlaceholder = !data.image;
+        } else {
+          // Content items use theme placeholder if no image in metadata
+          shouldUseThemePlaceholder = !data.metadata?.image && !data.image;
+        }
+        
+        if (shouldUseThemePlaceholder) {
+          const newPlaceholder = getThemeAwarePlaceholder();
+          image.src = newPlaceholder;
+        }
+      } catch (error) {
+        console.error('Error updating card image for theme:', error);
+      }
+    });
+  }
+
   // Run immediately and also on DOM ready
   function init() {
     if (initialized) {
@@ -1091,14 +1133,49 @@
     console.log('CardInteractions initialized');
   }
   
+  // Set up theme change listener separately
+  function initThemeListener() {
+    if (themeListenerInitialized) {
+      console.log('Theme listener already initialized, skipping');
+      return;
+    }
+    
+    themeListenerInitialized = true;
+    
+    // Listen for theme changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          console.log('Theme changed, updating card images');
+          updateCardImagesForTheme();
+        }
+      });
+    });
+    
+    // Start observing theme changes on document element
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+    
+    console.log('Theme change listener initialized');
+  }
+  
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => {
+      init();
+      initThemeListener();
+    });
   } else {
     init();
+    initThemeListener();
   }
   
   // Also run on window load as backup
-  window.addEventListener('load', init);
+  window.addEventListener('load', () => {
+    init();
+    initThemeListener();
+  });
 </script>
 
 <style>
