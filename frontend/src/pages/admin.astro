@@ -1,0 +1,1352 @@
+---
+// Admin dashboard page - requires authentication
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard - Portfolio</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg-color: #0a0a0a;
+        --card-bg: rgba(20, 20, 20, 0.8);
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+        --accent-color: #ffd700;
+        --success-color: #44ff44;
+        --error-color: #ff4444;
+        --warning-color: #ffaa00;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        --hover-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      [data-theme="light"] {
+        --bg-color: #f5f5f5;
+        --card-bg: rgba(255, 255, 255, 0.9);
+        --text-primary: #333333;
+        --text-secondary: #666666;
+        --accent-color: #007acc;
+        --success-color: #33cc33;
+        --error-color: #cc3333;
+        --warning-color: #cc8800;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        --hover-bg: rgba(0, 0, 0, 0.05);
+      }
+
+      body {
+        font-family: 'Arial', sans-serif;
+        background: var(--bg-color);
+        color: var(--text-primary);
+        min-height: 100vh;
+        transition: all 0.3s ease;
+      }
+
+      .header {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        backdrop-filter: blur(20px);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .header-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--accent-color);
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .theme-toggle, .logout-btn {
+        background: none;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+      }
+
+      .theme-toggle:hover, .logout-btn:hover {
+        background: var(--accent-color);
+        color: var(--bg-color);
+        transform: translateY(-2px);
+      }
+
+      .logout-btn {
+        background: linear-gradient(135deg, var(--error-color), #cc1111);
+        color: white;
+        border: none;
+      }
+
+      .main-container {
+        display: flex;
+        height: calc(100vh - 80px);
+      }
+
+      .sidebar {
+        width: 300px;
+        background: var(--card-bg);
+        border-right: 1px solid var(--border-color);
+        backdrop-filter: blur(20px);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .sidebar-title {
+        font-weight: bold;
+        color: var(--accent-color);
+        flex: 1;
+      }
+
+      .folder-nav {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+      }
+
+      .folder-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        user-select: none;
+      }
+
+      .folder-item:hover {
+        background: var(--hover-bg);
+      }
+
+      .folder-item.active {
+        background: var(--accent-color);
+        color: var(--bg-color);
+      }
+
+      .folder-item.nested-1 { padding-left: 1.5rem; }
+      .folder-item.nested-2 { padding-left: 2.5rem; }
+      .folder-item.nested-3 { padding-left: 3.5rem; }
+
+      .folder-icon {
+        font-size: 1rem;
+        min-width: 16px;
+      }
+
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .content-header {
+        padding: 1rem 2rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      .breadcrumb span {
+        cursor: pointer;
+        transition: color 0.3s ease;
+      }
+
+      .breadcrumb span:hover {
+        color: var(--accent-color);
+      }
+
+      .content-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        background: linear-gradient(135deg, var(--accent-color), #b8860b);
+        color: var(--bg-color);
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn.danger {
+        background: linear-gradient(135deg, var(--error-color), #cc1111);
+      }
+
+      .btn.success {
+        background: linear-gradient(135deg, var(--success-color), #22cc22);
+      }
+
+      .btn.small {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.8rem;
+      }
+
+      .file-list-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 2rem;
+      }
+
+      .file-list {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        backdrop-filter: blur(20px);
+        overflow: hidden;
+      }
+
+      .file-header {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr auto;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--hover-bg);
+        border-bottom: 1px solid var(--border-color);
+        font-weight: bold;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      .file-item {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr auto;
+        gap: 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        align-items: center;
+      }
+
+      .file-item:hover {
+        background: var(--hover-bg);
+      }
+
+      .file-item:last-child {
+        border-bottom: none;
+      }
+
+      .file-name {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+      }
+
+      .file-name:hover {
+        color: var(--accent-color);
+      }
+
+      .file-icon {
+        font-size: 1.2rem;
+        min-width: 20px;
+      }
+
+      .file-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .file-btn {
+        background: none;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 0.3rem 0.8rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+      }
+
+      .file-btn:hover {
+        background: var(--accent-color);
+        color: var(--bg-color);
+      }
+
+      .file-btn.danger:hover {
+        background: var(--error-color);
+      }
+
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+      }
+
+      .modal {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        backdrop-filter: blur(20px);
+        box-shadow: var(--shadow);
+      }
+
+      .modal-header {
+        margin-bottom: 1.5rem;
+      }
+
+      .modal-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: var(--accent-color);
+        margin-bottom: 0.5rem;
+      }
+
+      .modal-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .form-input, .form-select {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-input:focus, .form-select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+      }
+
+      .file-input {
+        padding: 0.5rem;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+      }
+
+      .message {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        border-left: 4px solid;
+      }
+
+      .message.success {
+        background: rgba(68, 255, 68, 0.1);
+        border-color: var(--success-color);
+        color: var(--success-color);
+      }
+
+      .message.error {
+        background: rgba(255, 68, 68, 0.1);
+        border-color: var(--error-color);
+        color: var(--error-color);
+      }
+
+      .message.warning {
+        background: rgba(255, 170, 0, 0.1);
+        border-color: var(--warning-color);
+        color: var(--warning-color);
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .loading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-secondary);
+      }
+
+      .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+
+      @media (max-width: 768px) {
+        .main-container {
+          flex-direction: column;
+          height: auto;
+        }
+        
+        .sidebar {
+          width: 100%;
+          height: 300px;
+        }
+        
+        .file-header, .file-item {
+          grid-template-columns: 2fr auto;
+          gap: 0.5rem;
+        }
+        
+        .file-size, .file-modified {
+          display: none;
+        }
+        
+        .content-header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        
+        .content-actions {
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-left">
+        <h1 class="header-title">File Manager</h1>
+      </div>
+      <div class="header-right">
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          🌙 Theme
+        </button>
+        <button class="logout-btn" id="logoutBtn">
+          🚪 Logout
+        </button>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-title">📁 Folders</div>
+          <button class="btn small" id="refreshFoldersBtn">🔄</button>
+        </div>
+        <div class="folder-nav" id="folderNav">
+          <div class="folder-item active" data-path="">
+            <span class="folder-icon">🏠</span>
+            <span>Root</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="content-header">
+          <div class="breadcrumb" id="breadcrumb">
+            <span data-path="">🏠 Root</span>
+          </div>
+          <div class="content-actions">
+            <button class="btn" id="uploadBtn">📤 Upload</button>
+            <button class="btn" id="createFolderBtn">📁 New Folder</button>
+            <button class="btn" id="refreshBtn">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <div class="file-list-container">
+          <div id="messageContainer"></div>
+          
+          <div class="file-list">
+            <div class="file-header">
+              <div>Name</div>
+              <div class="file-size">Size</div>
+              <div class="file-modified">Modified</div>
+              <div>Actions</div>
+            </div>
+            <div id="fileListContent">
+              <div class="empty-state">
+                <div class="empty-icon">📁</div>
+                <div>Loading files...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Upload Files</div>
+          <div class="modal-subtitle">Select files to upload to the current folder</div>
+        </div>
+        <form id="uploadForm">
+          <div class="form-group">
+            <label class="form-label">Files</label>
+            <input type="file" class="form-input file-input" id="fileInput" multiple required>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn" id="cancelUploadBtn">Cancel</button>
+            <button type="submit" class="btn success" id="uploadSubmitBtn">Upload</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div id="createFolderModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Create New Folder</div>
+          <div class="modal-subtitle">Enter a name for the new folder</div>
+        </div>
+        <form id="createFolderForm">
+          <div class="form-group">
+            <label class="form-label">Folder Name</label>
+            <input type="text" class="form-input" id="folderNameInput" placeholder="my-folder" required>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn" id="cancelCreateFolderBtn">Cancel</button>
+            <button type="submit" class="btn success" id="createFolderSubmitBtn">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div id="renameModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Rename Item</div>
+          <div class="modal-subtitle">Enter a new name for this item</div>
+        </div>
+        <form id="renameForm">
+          <div class="form-group">
+            <label class="form-label">New Name</label>
+            <input type="text" class="form-input" id="renameInput" required>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn" id="cancelRenameBtn">Cancel</button>
+            <button type="submit" class="btn success" id="renameSubmitBtn">Rename</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Move Modal -->
+    <div id="moveModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Move Item</div>
+          <div class="modal-subtitle">Select destination folder</div>
+        </div>
+        <form id="moveForm">
+          <div class="form-group">
+            <label class="form-label">Destination</label>
+            <select class="form-select" id="moveDestinationSelect" required>
+              <option value="">Select destination...</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn" id="cancelMoveBtn">Cancel</button>
+            <button type="submit" class="btn success" id="moveSubmitBtn">Move</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title" id="confirmTitle">Confirm Action</div>
+          <div class="modal-subtitle" id="confirmMessage">Are you sure you want to proceed?</div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" id="cancelConfirmBtn">Cancel</button>
+          <button type="button" class="btn danger" id="confirmActionBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Global state
+      let currentPath = '';
+      let currentFiles = [];
+      let allFolders = [];
+      let selectedItem = null;
+      let confirmCallback = null;
+
+      // Theme management
+      const themeToggle = document.getElementById('themeToggle');
+      const body = document.body;
+      
+      const currentTheme = localStorage.getItem('theme') || 'dark';
+      if (currentTheme === 'light') {
+        body.setAttribute('data-theme', 'light');
+        themeToggle.innerHTML = '☀️ Theme';
+      }
+
+      themeToggle.addEventListener('click', () => {
+        const currentTheme = body.getAttribute('data-theme');
+        if (currentTheme === 'light') {
+          body.removeAttribute('data-theme');
+          themeToggle.innerHTML = '🌙 Theme';
+          localStorage.setItem('theme', 'dark');
+        } else {
+          body.setAttribute('data-theme', 'light');
+          themeToggle.innerHTML = '☀️ Theme';
+          localStorage.setItem('theme', 'light');
+        }
+      });
+
+      // Authentication check
+      function checkAuth() {
+        const token = localStorage.getItem('adminToken');
+        const expires = localStorage.getItem('tokenExpires');
+        
+        if (!token || !expires) {
+          const loginUrl = `${window.location.protocol}//${window.location.host}/knockknock/`;
+          window.location.href = loginUrl;
+          return false;
+        }
+        
+        const expiresDate = new Date(expires);
+        if (expiresDate <= new Date()) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('tokenExpires');
+          const loginUrl = `${window.location.protocol}//${window.location.host}/knockknock/`;
+          window.location.href = loginUrl;
+          return false;
+        }
+        
+        return true;
+      }
+
+      // Make authenticated API requests
+      async function apiRequest(endpoint, options = {}) {
+        const token = localStorage.getItem('adminToken');
+        const defaultOptions = {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        };
+        
+        // Don't set Content-Type for FormData (multipart uploads)
+        if (!(options.body instanceof FormData)) {
+          defaultOptions.headers['Content-Type'] = 'application/json';
+        }
+        
+        const mergedOptions = {
+          ...defaultOptions,
+          ...options,
+          headers: {
+            ...defaultOptions.headers,
+            ...options.headers
+          }
+        };
+        
+        const response = await fetch(endpoint, mergedOptions);
+        
+        if (response.status === 401) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('tokenExpires');
+          const loginUrl = `${window.location.protocol}//${window.location.host}/knockknock/`;
+          window.location.href = loginUrl;
+          return null;
+        }
+        
+        return response;
+      }
+
+      // Show message
+      function showMessage(message, type = 'success') {
+        const container = document.getElementById('messageContainer');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        messageDiv.textContent = message;
+        container.appendChild(messageDiv);
+        
+        setTimeout(() => {
+          messageDiv.remove();
+        }, 5000);
+      }
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        try {
+          await apiRequest('/api/auth/logout', { method: 'POST' });
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+        
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('tokenExpires');
+        const loginUrl = `${window.location.protocol}//${window.location.host}/knockknock/`;
+        window.location.href = loginUrl;
+      });
+
+      // Format file size
+      function formatFileSize(bytes) {
+        if (!bytes) return '-';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let size = bytes;
+        let unitIndex = 0;
+        
+        while (size >= 1024 && unitIndex < units.length - 1) {
+          size /= 1024;
+          unitIndex++;
+        }
+        
+        return `${size.toFixed(1)} ${units[unitIndex]}`;
+      }
+
+      // Get file icon
+      function getFileIcon(name, isDirectory) {
+        if (isDirectory) return '📁';
+        
+        const ext = name.split('.').pop().toLowerCase();
+        const iconMap = {
+          'md': '📝', 'txt': '📄', 'json': '⚙️', 'yaml': '⚙️', 'yml': '⚙️',
+          'js': '💻', 'ts': '💻', 'html': '🌐', 'css': '🎨', 'scss': '🎨',
+          'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️', 'gif': '🖼️', 'svg': '🖼️',
+          'pdf': '📕', 'doc': '📘', 'docx': '📘', 'zip': '📦', 'tar': '📦'
+        };
+        
+        return iconMap[ext] || '📄';
+      }
+
+      // Load folder structure
+      async function loadFolderStructure() {
+        try {
+          const response = await apiRequest('/api/admin/files/list/');
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              buildFolderTree(data.data);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading folder structure:', error);
+        }
+      }
+
+      // Build folder tree recursively
+      function buildFolderTree(contents, parentPath = '', level = 0) {
+        const nav = document.getElementById('folderNav');
+        
+        if (level === 0) {
+          // Clear existing folders except root
+          const existingFolders = nav.querySelectorAll('.folder-item:not([data-path=""])');
+          existingFolders.forEach(folder => folder.remove());
+          allFolders = [''];
+        }
+        
+        const folders = contents.items.filter(item => item.is_directory);
+        
+        folders.forEach(folder => {
+          const folderPath = parentPath ? `${parentPath}/${folder.name}` : folder.name;
+          allFolders.push(folderPath);
+          
+          const folderElement = document.createElement('div');
+          folderElement.className = `folder-item nested-${Math.min(level + 1, 3)}`;
+          folderElement.setAttribute('data-path', folderPath);
+          folderElement.innerHTML = `
+            <span class="folder-icon">📁</span>
+            <span>${folder.name}</span>
+          `;
+          
+          folderElement.addEventListener('click', () => {
+            setCurrentPath(folderPath);
+          });
+          
+          nav.appendChild(folderElement);
+          
+          // Load subfolders (recursive)
+          loadSubfolders(folderPath, level + 1);
+        });
+      }
+
+      // Load subfolders for tree view
+      async function loadSubfolders(path, level) {
+        try {
+          const response = await apiRequest(`/api/admin/files/list/${encodeURIComponent(path)}`);
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              buildFolderTree(data.data, path, level);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading subfolders:', error);
+        }
+      }
+
+      // Set current path and load files
+      function setCurrentPath(path) {
+        currentPath = path;
+        
+        // Update active folder
+        document.querySelectorAll('.folder-item').forEach(item => {
+          item.classList.remove('active');
+        });
+        document.querySelector(`[data-path="${path}"]`).classList.add('active');
+        
+        // Update breadcrumb
+        updateBreadcrumb(path);
+        
+        // Load files
+        loadFiles(path);
+      }
+
+      // Update breadcrumb navigation
+      function updateBreadcrumb(path) {
+        const breadcrumb = document.getElementById('breadcrumb');
+        breadcrumb.innerHTML = '';
+        
+        if (!path) {
+          breadcrumb.innerHTML = '<span data-path="">🏠 Root</span>';
+          return;
+        }
+        
+        const parts = path.split('/');
+        let currentPath = '';
+        
+        // Add root
+        const rootSpan = document.createElement('span');
+        rootSpan.textContent = '🏠 Root';
+        rootSpan.setAttribute('data-path', '');
+        rootSpan.addEventListener('click', () => setCurrentPath(''));
+        breadcrumb.appendChild(rootSpan);
+        
+        // Add path parts
+        parts.forEach((part, index) => {
+          currentPath = currentPath ? `${currentPath}/${part}` : part;
+          
+          const separator = document.createElement('span');
+          separator.textContent = ' / ';
+          separator.style.color = 'var(--text-secondary)';
+          breadcrumb.appendChild(separator);
+          
+          const partSpan = document.createElement('span');
+          partSpan.textContent = part;
+          partSpan.setAttribute('data-path', currentPath);
+          
+          if (index === parts.length - 1) {
+            partSpan.style.color = 'var(--accent-color)';
+            partSpan.style.fontWeight = 'bold';
+          } else {
+            partSpan.addEventListener('click', () => setCurrentPath(currentPath));
+          }
+          
+          breadcrumb.appendChild(partSpan);
+        });
+      }
+
+      // Load files for current path
+      async function loadFiles(path = '') {
+        const fileListContent = document.getElementById('fileListContent');
+        fileListContent.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div>Loading files...</div></div>';
+        
+        try {
+          const encodedPath = path ? encodeURIComponent(path) : '';
+          const response = await apiRequest(`/api/admin/files/list/${encodedPath}`);
+          
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              currentFiles = data.data.items;
+              renderFileList(currentFiles);
+            } else {
+              showMessage(data.message || 'Failed to load files', 'error');
+            }
+          } else {
+            showMessage('Failed to load files', 'error');
+          }
+        } catch (error) {
+          showMessage('Error loading files', 'error');
+          console.error('Error:', error);
+        }
+      }
+
+      // Render file list
+      function renderFileList(files) {
+        const fileListContent = document.getElementById('fileListContent');
+        
+        if (files.length === 0) {
+          fileListContent.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><div>This folder is empty</div></div>';
+          return;
+        }
+        
+        fileListContent.innerHTML = files.map(file => {
+          return `
+          <div class="file-item" data-path="${file.path}" data-name="${file.name}" data-is-directory="${file.is_directory}">
+            <div class="file-name file-click-target">
+              <span class="file-icon">${getFileIcon(file.name, file.is_directory)}</span>
+              <span>${file.name}</span>
+            </div>
+            <div class="file-size">${formatFileSize(file.size)}</div>
+            <div class="file-modified">${file.modified || '-'}</div>
+            <div class="file-actions">
+              ${!file.is_directory ? `<button class="file-btn download-btn">⬇️</button>` : ''}
+              <button class="file-btn rename-btn">✏️</button>
+              <button class="file-btn move-btn">📁</button>
+              <button class="file-btn danger delete-btn">🗑️</button>
+            </div>
+          </div>
+        `;
+        }).join('');
+        
+        // Add event listeners to the new elements
+        addFileListEventListeners();
+      }
+
+      // Add event listeners to file list items
+      function addFileListEventListeners() {
+        // File/folder click handlers
+        document.querySelectorAll('.file-click-target').forEach(element => {
+          element.addEventListener('click', (e) => {
+            const fileItem = e.target.closest('.file-item');
+            const path = fileItem.dataset.path;
+            const isDirectory = fileItem.dataset.isDirectory === 'true';
+            handleFileClick(path, isDirectory);
+          });
+        });
+        
+        // Download button handlers
+        document.querySelectorAll('.download-btn').forEach(button => {
+          button.addEventListener('click', (e) => {
+            const fileItem = e.target.closest('.file-item');
+            const path = fileItem.dataset.path;
+            downloadFile(path);
+          });
+        });
+        
+        // Rename button handlers
+        document.querySelectorAll('.rename-btn').forEach(button => {
+          button.addEventListener('click', (e) => {
+            const fileItem = e.target.closest('.file-item');
+            const path = fileItem.dataset.path;
+            const name = fileItem.dataset.name;
+            showRenameModal(path, name);
+          });
+        });
+        
+        // Move button handlers
+        document.querySelectorAll('.move-btn').forEach(button => {
+          button.addEventListener('click', (e) => {
+            const fileItem = e.target.closest('.file-item');
+            const path = fileItem.dataset.path;
+            showMoveModal(path);
+          });
+        });
+        
+        // Delete button handlers
+        document.querySelectorAll('.delete-btn').forEach(button => {
+          button.addEventListener('click', (e) => {
+            const fileItem = e.target.closest('.file-item');
+            const path = fileItem.dataset.path;
+            const name = fileItem.dataset.name;
+            confirmDelete(path, name);
+          });
+        });
+      }
+
+      // Handle file/folder click
+      function handleFileClick(path, isDirectory) {
+        if (isDirectory) {
+          setCurrentPath(path);
+        }
+      }
+
+      // File operations
+      async function downloadFile(filePath) {
+        const fullPath = currentPath ? `${currentPath}/${filePath}` : filePath;
+        window.open(`/api/admin/files/download/${encodeURIComponent(fullPath)}`, '_blank');
+      }
+
+      async function deleteFile(filePath) {
+        const fullPath = currentPath ? `${currentPath}/${filePath}` : filePath;
+        
+        try {
+          const response = await apiRequest('/api/admin/files/delete', {
+            method: 'POST',
+            body: JSON.stringify({ path: fullPath })
+          });
+          
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              showMessage('File/folder deleted successfully');
+              loadFiles(currentPath);
+              loadFolderStructure();
+            } else {
+              showMessage(data.message || 'Delete failed', 'error');
+            }
+          } else {
+            showMessage('Delete failed', 'error');
+          }
+        } catch (error) {
+          showMessage('Error deleting file', 'error');
+          console.error('Error:', error);
+        }
+      }
+
+      // Modal management
+      function showModal(modalId) {
+        document.getElementById(modalId).classList.remove('hidden');
+      }
+
+      function hideModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+      }
+
+      function hideAllModals() {
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+          modal.classList.add('hidden');
+        });
+      }
+
+      // Confirmation dialog
+      function showConfirmDialog(title, message, callback) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        confirmCallback = callback;
+        showModal('confirmModal');
+      }
+
+      function confirmDelete(filePath, fileName) {
+        showConfirmDialog(
+          'Delete Item',
+          `Are you sure you want to delete "${fileName}"? This action cannot be undone.`,
+          () => deleteFile(filePath)
+        );
+      }
+
+      // Upload modal
+      document.getElementById('uploadBtn').addEventListener('click', () => {
+        showModal('uploadModal');
+      });
+
+      document.getElementById('cancelUploadBtn').addEventListener('click', () => {
+        hideModal('uploadModal');
+      });
+
+      document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('fileInput');
+        const files = fileInput.files;
+        
+        if (files.length === 0) return;
+        
+        const formData = new FormData();
+        for (let file of files) {
+          formData.append('files', file);
+        }
+        
+        try {
+          const encodedPath = currentPath ? encodeURIComponent(currentPath) : '';
+          const response = await apiRequest(`/api/admin/files/upload/${encodedPath}`, {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              showMessage('Files uploaded successfully');
+              hideModal('uploadModal');
+              loadFiles(currentPath);
+              fileInput.value = '';
+            } else {
+              showMessage(data.message || 'Upload failed', 'error');
+            }
+          } else {
+            showMessage('Upload failed', 'error');
+          }
+        } catch (error) {
+          showMessage('Error uploading files', 'error');
+          console.error('Error:', error);
+        }
+      });
+
+      // Create folder modal
+      document.getElementById('createFolderBtn').addEventListener('click', () => {
+        showModal('createFolderModal');
+      });
+
+      document.getElementById('cancelCreateFolderBtn').addEventListener('click', () => {
+        hideModal('createFolderModal');
+      });
+
+      document.getElementById('createFolderForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const folderName = document.getElementById('folderNameInput').value.trim();
+        if (!folderName) return;
+        
+        const folderPath = currentPath ? `${currentPath}/${folderName}` : folderName;
+        
+        try {
+          const response = await apiRequest('/api/admin/files/create-folder', {
+            method: 'POST',
+            body: JSON.stringify({ path: folderPath })
+          });
+          
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              showMessage('Folder created successfully');
+              hideModal('createFolderModal');
+              loadFiles(currentPath);
+              loadFolderStructure();
+              document.getElementById('folderNameInput').value = '';
+            } else {
+              showMessage(data.message || 'Folder creation failed', 'error');
+            }
+          } else {
+            showMessage('Folder creation failed', 'error');
+          }
+        } catch (error) {
+          showMessage('Error creating folder', 'error');
+          console.error('Error:', error);
+        }
+      });
+
+      // Rename modal
+      function showRenameModal(filePath, currentName) {
+        selectedItem = { path: filePath, name: currentName };
+        document.getElementById('renameInput').value = currentName;
+        showModal('renameModal');
+      }
+
+      document.getElementById('cancelRenameBtn').addEventListener('click', () => {
+        hideModal('renameModal');
+      });
+
+      document.getElementById('renameForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const newName = document.getElementById('renameInput').value.trim();
+        if (!newName || !selectedItem) return;
+        
+        const oldPath = currentPath ? `${currentPath}/${selectedItem.path}` : selectedItem.path;
+        const newPath = currentPath ? `${currentPath}/${newName}` : newName;
+        
+        try {
+          const response = await apiRequest('/api/admin/files/rename', {
+            method: 'POST',
+            body: JSON.stringify({ old_path: oldPath, new_path: newPath })
+          });
+          
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              showMessage('Item renamed successfully');
+              hideModal('renameModal');
+              loadFiles(currentPath);
+              loadFolderStructure();
+            } else {
+              showMessage(data.message || 'Rename failed', 'error');
+            }
+          } else {
+            showMessage('Rename failed', 'error');
+          }
+        } catch (error) {
+          showMessage('Error renaming item', 'error');
+          console.error('Error:', error);
+        }
+      });
+
+      // Move modal
+      function showMoveModal(filePath) {
+        selectedItem = { path: filePath };
+        
+        const select = document.getElementById('moveDestinationSelect');
+        select.innerHTML = '<option value="">Select destination...</option>';
+        
+        allFolders.forEach(folder => {
+          const option = document.createElement('option');
+          option.value = folder;
+          option.textContent = folder || 'Root';
+          select.appendChild(option);
+        });
+        
+        showModal('moveModal');
+      }
+
+      document.getElementById('cancelMoveBtn').addEventListener('click', () => {
+        hideModal('moveModal');
+      });
+
+      document.getElementById('moveForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const destination = document.getElementById('moveDestinationSelect').value;
+        if (!selectedItem) return;
+        
+        const sourcePath = currentPath ? `${currentPath}/${selectedItem.path}` : selectedItem.path;
+        const fileName = selectedItem.path.split('/').pop();
+        const destinationPath = destination ? `${destination}/${fileName}` : fileName;
+        
+        try {
+          const response = await apiRequest('/api/admin/files/move', {
+            method: 'POST',
+            body: JSON.stringify({ source_path: sourcePath, destination_path: destinationPath })
+          });
+          
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              showMessage('Item moved successfully');
+              hideModal('moveModal');
+              loadFiles(currentPath);
+              loadFolderStructure();
+            } else {
+              showMessage(data.message || 'Move failed', 'error');
+            }
+          } else {
+            showMessage('Move failed', 'error');
+          }
+        } catch (error) {
+          showMessage('Error moving item', 'error');
+          console.error('Error:', error);
+        }
+      });
+
+      // Confirmation modal
+      document.getElementById('cancelConfirmBtn').addEventListener('click', () => {
+        hideModal('confirmModal');
+        confirmCallback = null;
+      });
+
+      document.getElementById('confirmActionBtn').addEventListener('click', () => {
+        if (confirmCallback) {
+          confirmCallback();
+        }
+        hideModal('confirmModal');
+        confirmCallback = null;
+      });
+
+      // Refresh buttons
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        loadFiles(currentPath);
+      });
+
+      document.getElementById('refreshFoldersBtn').addEventListener('click', () => {
+        loadFolderStructure();
+      });
+
+      // Close modals when clicking outside
+      document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) {
+            hideAllModals();
+          }
+        });
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          hideAllModals();
+        }
+      });
+
+      // Initialize
+      document.addEventListener('DOMContentLoaded', () => {
+        if (!checkAuth()) {
+          return;
+        }
+        
+        loadFolderStructure();
+        loadFiles('');
+      });
+    </script>
+  </body>
+</html>

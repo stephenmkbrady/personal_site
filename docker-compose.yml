@@ -13,10 +13,12 @@ services:
       - FRONTEND_PATH=/app/frontend
       - FRONTEND_URL=http://localhost:3000
       - RUST_LOG=info
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
     ports:
       - "4000:4000"
     volumes:
-      - ./content:/app/content:ro
+      - ./content:/app/content
     networks:
       - portfolio-network
     restart: unless-stopped

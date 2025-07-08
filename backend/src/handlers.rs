@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse, Result};
+use actix_web::{web, HttpResponse, Result, HttpRequest};
 use chrono::{DateTime, Utc, Duration};
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -238,16 +238,344 @@ pub async fn get_github_projects(
 }
 
 pub async fn refresh_github_cache(
+    req: HttpRequest,
     github_cache: web::Data<Mutex<HashMap<String, CachedGithubProject>>>,
-    app_config: web::Data<AppConfig>,
+    _app_config: web::Data<AppConfig>,
 ) -> Result<HttpResponse> {
-    // Clear the cache
-    {
-        let mut cache = github_cache.lock().unwrap();
-        cache.clear();
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            // Clear the cache
+            {
+                let mut cache = github_cache.lock().unwrap();
+                cache.clear();
+            }
+            
+            Ok(HttpResponse::Ok().json(ApiResponse::success("GitHub cache refreshed")))
+        }
+        Err(response) => Ok(response),
+    }
+}
+
+// Authentication handlers
+
+/// Login endpoint - validates credentials and returns JWT token
+pub async fn login(
+    login_request: web::Json<LoginRequest>,
+) -> Result<HttpResponse> {
+    let admin_user = get_admin_user();
+    
+    // Validate credentials
+    if login_request.username != admin_user.username {
+        return Ok(HttpResponse::Unauthorized().json(
+            ApiResponse::<()>::error("Invalid username or password")
+        ));
     }
     
-    Ok(HttpResponse::Ok().json(ApiResponse::success("GitHub cache refreshed")))
+    if !verify_password(&login_request.password, &admin_user.password_hash) {
+        return Ok(HttpResponse::Unauthorized().json(
+            ApiResponse::<()>::error("Invalid username or password")
+        ));
+    }
+    
+    // Create JWT token
+    match create_jwt_token(&admin_user.username, &admin_user.role) {
+        Ok((token, expires_at)) => {
+            let response = LoginResponse {
+                token,
+                expires_at,
+            };
+            Ok(HttpResponse::Ok().json(ApiResponse::success(response)))
+        }
+        Err(e) => {
+            eprintln!("JWT creation error: {}", e);
+            Ok(HttpResponse::InternalServerError().json(
+                ApiResponse::<()>::error("Failed to create authentication token")
+            ))
+        }
+    }
+}
+
+/// Verify token endpoint - checks if provided JWT token is valid
+pub async fn verify_token(
+    req: actix_web::HttpRequest,
+) -> Result<HttpResponse> {
+    let auth_header = req.headers().get("authorization");
+    
+    if let Some(auth_value) = auth_header {
+        if let Ok(auth_str) = auth_value.to_str() {
+            if auth_str.starts_with("Bearer ") {
+                let token = &auth_str[7..]; // Remove "Bearer " prefix
+                
+                match verify_jwt_token(token) {
+                    Ok(claims) => {
+                        return Ok(HttpResponse::Ok().json(ApiResponse::success(claims)));
+                    }
+                    Err(e) => {
+                        eprintln!("Token verification error: {}", e);
+                        return Ok(HttpResponse::Unauthorized().json(
+                            ApiResponse::<()>::error("Invalid or expired token")
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    
+    Ok(HttpResponse::Unauthorized().json(
+        ApiResponse::<()>::error("Missing or invalid authorization header")
+    ))
+}
+
+/// Logout endpoint - client-side token invalidation (server just confirms)
+pub async fn logout() -> Result<HttpResponse> {
+    Ok(HttpResponse::Ok().json(ApiResponse::success("Logged out successfully")))
+}
+
+// File Management handlers
+
+/// List files and folders in a directory
+pub async fn list_files(
+    req: HttpRequest,
+    path: web::Path<String>,
+    app_config: web::Data<AppConfig>,
+) -> Result<HttpResponse> {
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            let folder_path = path.into_inner();
+            
+            // Validate and create safe path
+            match create_safe_file_path(&app_config.content_path, &folder_path) {
+                Ok(safe_path) => {
+                    match list_directory_contents(&safe_path) {
+                        Ok(contents) => {
+                            Ok(HttpResponse::Ok().json(ApiResponse::success(contents)))
+                        }
+                        Err(e) => {
+                            Ok(HttpResponse::InternalServerError().json(
+                                ApiResponse::<()>::error(&format!("Failed to list directory: {}", e))
+                            ))
+                        }
+                    }
+                }
+                Err(e) => {
+                    Ok(HttpResponse::BadRequest().json(
+                        ApiResponse::<()>::error(&format!("Invalid path: {}", e))
+                    ))
+                }
+            }
+        }
+        Err(response) => Ok(response),
+    }
+}
+
+/// Upload file to directory
+pub async fn upload_file(
+    req: HttpRequest,
+    mut payload: actix_multipart::Multipart,
+    path: web::Path<String>,
+    app_config: web::Data<AppConfig>,
+) -> Result<HttpResponse> {
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            let folder_path = path.into_inner();
+            
+            // Validate and create safe path
+            match create_safe_file_path(&app_config.content_path, &folder_path) {
+                Ok(safe_path) => {
+                    match handle_file_upload(&mut payload, &safe_path).await {
+                        Ok(filename) => {
+                            Ok(HttpResponse::Ok().json(ApiResponse::success(format!("File '{}' uploaded successfully", filename))))
+                        }
+                        Err(e) => {
+                            Ok(HttpResponse::InternalServerError().json(
+                                ApiResponse::<()>::error(&format!("Upload failed: {}", e))
+                            ))
+                        }
+                    }
+                }
+                Err(e) => {
+                    Ok(HttpResponse::BadRequest().json(
+                        ApiResponse::<()>::error(&format!("Invalid path: {}", e))
+                    ))
+                }
+            }
+        }
+        Err(response) => Ok(response),
+    }
+}
+
+/// Delete file or folder
+pub async fn delete_file(
+    req: HttpRequest,
+    delete_request: web::Json<FileOperationRequest>,
+    app_config: web::Data<AppConfig>,
+) -> Result<HttpResponse> {
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            match create_safe_file_path(&app_config.content_path, &delete_request.path) {
+                Ok(safe_path) => {
+                    match delete_file_or_folder(&safe_path) {
+                        Ok(_) => {
+                            Ok(HttpResponse::Ok().json(ApiResponse::success("File/folder deleted successfully")))
+                        }
+                        Err(e) => {
+                            Ok(HttpResponse::InternalServerError().json(
+                                ApiResponse::<()>::error(&format!("Delete failed: {}", e))
+                            ))
+                        }
+                    }
+                }
+                Err(e) => {
+                    Ok(HttpResponse::BadRequest().json(
+                        ApiResponse::<()>::error(&format!("Invalid path: {}", e))
+                    ))
+                }
+            }
+        }
+        Err(response) => Ok(response),
+    }
+}
+
+/// Rename file or folder
+pub async fn rename_file(
+    req: HttpRequest,
+    rename_request: web::Json<FileRenameRequest>,
+    app_config: web::Data<AppConfig>,
+) -> Result<HttpResponse> {
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            match (
+                create_safe_file_path(&app_config.content_path, &rename_request.old_path),
+                create_safe_file_path(&app_config.content_path, &rename_request.new_path)
+            ) {
+                (Ok(old_safe_path), Ok(new_safe_path)) => {
+                    match rename_file_or_folder(&old_safe_path, &new_safe_path) {
+                        Ok(_) => {
+                            Ok(HttpResponse::Ok().json(ApiResponse::success("File/folder renamed successfully")))
+                        }
+                        Err(e) => {
+                            Ok(HttpResponse::InternalServerError().json(
+                                ApiResponse::<()>::error(&format!("Rename failed: {}", e))
+                            ))
+                        }
+                    }
+                }
+                _ => {
+                    Ok(HttpResponse::BadRequest().json(
+                        ApiResponse::<()>::error("Invalid file paths")
+                    ))
+                }
+            }
+        }
+        Err(response) => Ok(response),
+    }
+}
+
+/// Move file or folder
+pub async fn move_file(
+    req: HttpRequest,
+    move_request: web::Json<FileMoveRequest>,
+    app_config: web::Data<AppConfig>,
+) -> Result<HttpResponse> {
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            match (
+                create_safe_file_path(&app_config.content_path, &move_request.source_path),
+                create_safe_file_path(&app_config.content_path, &move_request.destination_path)
+            ) {
+                (Ok(source_safe_path), Ok(dest_safe_path)) => {
+                    match move_file_or_folder(&source_safe_path, &dest_safe_path) {
+                        Ok(_) => {
+                            Ok(HttpResponse::Ok().json(ApiResponse::success("File/folder moved successfully")))
+                        }
+                        Err(e) => {
+                            Ok(HttpResponse::InternalServerError().json(
+                                ApiResponse::<()>::error(&format!("Move failed: {}", e))
+                            ))
+                        }
+                    }
+                }
+                _ => {
+                    Ok(HttpResponse::BadRequest().json(
+                        ApiResponse::<()>::error("Invalid file paths")
+                    ))
+                }
+            }
+        }
+        Err(response) => Ok(response),
+    }
+}
+
+/// Create new folder
+pub async fn create_folder(
+    req: HttpRequest,
+    folder_request: web::Json<FileOperationRequest>,
+    app_config: web::Data<AppConfig>,
+) -> Result<HttpResponse> {
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            match create_safe_file_path(&app_config.content_path, &folder_request.path) {
+                Ok(safe_path) => {
+                    match create_directory(&safe_path) {
+                        Ok(_) => {
+                            Ok(HttpResponse::Ok().json(ApiResponse::success("Folder created successfully")))
+                        }
+                        Err(e) => {
+                            Ok(HttpResponse::InternalServerError().json(
+                                ApiResponse::<()>::error(&format!("Folder creation failed: {}", e))
+                            ))
+                        }
+                    }
+                }
+                Err(e) => {
+                    Ok(HttpResponse::BadRequest().json(
+                        ApiResponse::<()>::error(&format!("Invalid path: {}", e))
+                    ))
+                }
+            }
+        }
+        Err(response) => Ok(response),
+    }
+}
+
+/// Download file
+pub async fn download_file(
+    req: HttpRequest,
+    path: web::Path<String>,
+    app_config: web::Data<AppConfig>,
+) -> Result<HttpResponse> {
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            let file_path = path.into_inner();
+            
+            match create_safe_file_path(&app_config.content_path, &file_path) {
+                Ok(safe_path) => {
+                    match serve_file_download(&safe_path) {
+                        Ok(response) => Ok(response),
+                        Err(e) => {
+                            Ok(HttpResponse::NotFound().json(
+                                ApiResponse::<()>::error(&format!("File not found: {}", e))
+                            ))
+                        }
+                    }
+                }
+                Err(e) => {
+                    Ok(HttpResponse::BadRequest().json(
+                        ApiResponse::<()>::error(&format!("Invalid path: {}", e))
+                    ))
+                }
+            }
+        }
+        Err(response) => Ok(response),
+    }
 }
 
 
