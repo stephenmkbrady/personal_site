@@ -464,6 +464,92 @@
         opacity: 0.5;
       }
 
+      .file-viewer-modal {
+        max-width: 800px;
+        width: 95%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .file-viewer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .file-viewer-content {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .file-content-display {
+        flex: 1;
+        overflow-y: auto;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      .file-content-editor {
+        flex: 1;
+        min-height: 400px;
+        resize: vertical;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: var(--text-primary);
+      }
+
+      .file-content-editor:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+      }
+
+      .editor-toolbar {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background: var(--hover-bg);
+        border-radius: 8px;
+        align-items: center;
+      }
+
+      .file-type-badge {
+        background: var(--accent-color);
+        color: var(--bg-color);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+
+      .read-only-badge {
+        background: var(--warning-color);
+        color: var(--bg-color);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+
       @media (max-width: 768px) {
         .main-container {
           flex-direction: column;
@@ -649,6 +735,29 @@
         <div class="modal-actions">
           <button type="button" class="btn" id="cancelConfirmBtn">Cancel</button>
           <button type="button" class="btn danger" id="confirmActionBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Viewer Modal -->
+    <div id="fileViewerModal" class="modal-overlay hidden">
+      <div class="modal file-viewer-modal">
+        <div class="file-viewer-header">
+          <div>
+            <div class="modal-title" id="fileViewerTitle">File Viewer</div>
+            <div class="modal-subtitle" id="fileViewerPath"></div>
+          </div>
+          <div class="editor-toolbar">
+            <span class="file-type-badge" id="fileTypeBadge"></span>
+            <span class="read-only-badge hidden" id="readOnlyBadge">Read Only</span>
+            <button type="button" class="btn small" id="editToggleBtn">Edit</button>
+            <button type="button" class="btn small success hidden" id="saveFileBtn">Save</button>
+            <button type="button" class="btn small" id="closeViewerBtn">Close</button>
+          </div>
+        </div>
+        <div class="file-viewer-content">
+          <div class="file-content-display" id="fileContentDisplay"></div>
+          <textarea class="file-content-editor hidden" id="fileContentEditor" placeholder="File content..."></textarea>
         </div>
       </div>
     </div>
@@ -972,6 +1081,7 @@
             <div class="file-size">${formatFileSize(file.size)}</div>
             <div class="file-modified">${file.modified || '-'}</div>
             <div class="file-actions">
+              ${!file.is_directory ? `<button class="file-btn view-btn">👁️</button>` : ''}
               ${!file.is_directory ? `<button class="file-btn download-btn">⬇️</button>` : ''}
               <button class="file-btn rename-btn">✏️</button>
               <button class="file-btn move-btn">📁</button>
@@ -997,11 +1107,25 @@
           });
         });
         
-        // Download button handlers
-        document.querySelectorAll('.download-btn').forEach(button => {
+        // View button handlers
+        document.querySelectorAll('.view-btn').forEach(button => {
           button.addEventListener('click', (e) => {
             const fileItem = e.target.closest('.file-item');
             const path = fileItem.dataset.path;
+            const name = fileItem.dataset.name;
+            viewFile(path, name);
+          });
+        });
+        
+        // Download button handlers
+        const downloadButtons = document.querySelectorAll('.download-btn');
+        console.log('Found download buttons:', downloadButtons.length);
+        downloadButtons.forEach(button => {
+          button.addEventListener('click', (e) => {
+            console.log('Download button clicked');
+            const fileItem = e.target.closest('.file-item');
+            const path = fileItem.dataset.path;
+            console.log('File path:', path);
             downloadFile(path);
           });
         });
@@ -1040,13 +1164,53 @@
       function handleFileClick(path, isDirectory) {
         if (isDirectory) {
           setCurrentPath(path);
+        } else {
+          // Check if file is viewable by looking at extension
+          const fileName = path.split('/').pop();
+          const ext = fileName.split('.').pop()?.toLowerCase();
+          const viewableExtensions = ['txt', 'md', 'markdown', 'json', 'yaml', 'yml', 'js', 'ts', 'html', 'css', 'scss', 'rs', 'py', 'toml', 'env', 'log', 'cfg', 'conf', 'xml'];
+          
+          if (viewableExtensions.includes(ext)) {
+            viewFile(path, fileName);
+          }
         }
       }
 
       // File operations
       async function downloadFile(filePath) {
         const fullPath = currentPath ? `${currentPath}/${filePath}` : filePath;
-        window.open(`/api/admin/files/download/${encodeURIComponent(fullPath)}`, '_blank');
+        console.log('downloadFile called with:', filePath, 'fullPath:', fullPath);
+        
+        try {
+          const response = await apiRequest(`/api/admin/files/download/${encodeURIComponent(fullPath)}`);
+          
+          if (response && response.ok) {
+            // Get the filename from the path
+            const fileName = filePath.split('/').pop();
+            
+            // Create blob and download
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            // Create temporary download link
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showMessage(`File "${fileName}" downloaded successfully`, 'success');
+          } else {
+            showMessage('Download failed', 'error');
+          }
+        } catch (error) {
+          showMessage('Error downloading file', 'error');
+          console.error('Download error:', error);
+        }
       }
 
       async function deleteFile(filePath) {
@@ -1336,6 +1500,133 @@
         if (e.key === 'Escape') {
           hideAllModals();
         }
+      });
+
+      // File viewer functionality
+      let currentViewedFile = null;
+      let isEditMode = false;
+      
+      async function viewFile(filePath, fileName) {
+        const fullPath = currentPath ? `${currentPath}/${filePath}` : filePath;
+        
+        try {
+          const response = await apiRequest(`/api/admin/files/read/${encodeURIComponent(fullPath)}`);
+          
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              currentViewedFile = {
+                path: fullPath,
+                name: fileName,
+                content: data.data.content,
+                fileType: data.data.file_type,
+                isEditable: data.data.is_editable
+              };
+              
+              showFileViewer();
+            } else {
+              showMessage(data.message || 'Failed to read file', 'error');
+            }
+          } else {
+            showMessage('Failed to read file', 'error');
+          }
+        } catch (error) {
+          showMessage('Error reading file', 'error');
+          console.error('Error:', error);
+        }
+      }
+      
+      function showFileViewer() {
+        if (!currentViewedFile) return;
+        
+        document.getElementById('fileViewerTitle').textContent = currentViewedFile.name;
+        document.getElementById('fileViewerPath').textContent = currentViewedFile.path;
+        document.getElementById('fileTypeBadge').textContent = currentViewedFile.fileType.toUpperCase();
+        document.getElementById('fileContentDisplay').textContent = currentViewedFile.content;
+        document.getElementById('fileContentEditor').value = currentViewedFile.content;
+        
+        // Show/hide edit controls based on file editability
+        const editToggleBtn = document.getElementById('editToggleBtn');
+        const readOnlyBadge = document.getElementById('readOnlyBadge');
+        
+        if (currentViewedFile.isEditable) {
+          editToggleBtn.classList.remove('hidden');
+          readOnlyBadge.classList.add('hidden');
+        } else {
+          editToggleBtn.classList.add('hidden');
+          readOnlyBadge.classList.remove('hidden');
+        }
+        
+        // Reset to view mode
+        setViewMode();
+        showModal('fileViewerModal');
+      }
+      
+      function setViewMode() {
+        isEditMode = false;
+        document.getElementById('fileContentDisplay').classList.remove('hidden');
+        document.getElementById('fileContentEditor').classList.add('hidden');
+        document.getElementById('editToggleBtn').textContent = 'Edit';
+        document.getElementById('saveFileBtn').classList.add('hidden');
+      }
+      
+      function setEditMode() {
+        isEditMode = true;
+        document.getElementById('fileContentDisplay').classList.add('hidden');
+        document.getElementById('fileContentEditor').classList.remove('hidden');
+        document.getElementById('editToggleBtn').textContent = 'View';
+        document.getElementById('saveFileBtn').classList.remove('hidden');
+      }
+      
+      async function saveFile() {
+        if (!currentViewedFile || !isEditMode) return;
+        
+        const content = document.getElementById('fileContentEditor').value;
+        
+        try {
+          const response = await apiRequest(`/api/admin/files/save/${encodeURIComponent(currentViewedFile.path)}`, {
+            method: 'POST',
+            body: JSON.stringify({ content })
+          });
+          
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              showMessage('File saved successfully');
+              currentViewedFile.content = content;
+              document.getElementById('fileContentDisplay').textContent = content;
+              setViewMode();
+            } else {
+              showMessage(data.message || 'Save failed', 'error');
+            }
+          } else {
+            showMessage('Save failed', 'error');
+          }
+        } catch (error) {
+          showMessage('Error saving file', 'error');
+          console.error('Error:', error);
+        }
+      }
+      
+      // File viewer event listeners
+      document.getElementById('editToggleBtn').addEventListener('click', () => {
+        if (currentViewedFile && currentViewedFile.isEditable) {
+          if (isEditMode) {
+            setViewMode();
+          } else {
+            setEditMode();
+          }
+        }
+      });
+      
+      document.getElementById('saveFileBtn').addEventListener('click', () => {
+        saveFile();
+      });
+      
+      document.getElementById('closeViewerBtn').addEventListener('click', () => {
+        hideModal('fileViewerModal');
+        currentViewedFile = null;
+        isEditMode = false;
       });
 
       // Initialize

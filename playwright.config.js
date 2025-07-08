@@ -1,6 +1,6 @@
 module.exports = {
   testDir: './tests',
-  testMatch: ['test-redirect.js', 'test-file-management.js', 'test-modal-debug.js', 'test-rename-specific.js'],
+  testMatch: ['**/*.test.js', 'test-*.js'],
   timeout: 60000,
   use: {
     headless: false,

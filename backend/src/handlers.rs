@@ -578,5 +578,122 @@ pub async fn download_file(
     }
 }
 
+/// Read file contents for viewing/editing
+pub async fn read_file_content(
+    req: HttpRequest,
+    path: web::Path<String>,
+    app_config: web::Data<AppConfig>,
+) -> Result<HttpResponse> {
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            let file_path = path.into_inner();
+            
+            match create_safe_file_path(&app_config.content_path, &file_path) {
+                Ok(safe_path) => {
+                    match std::fs::read_to_string(&safe_path) {
+                        Ok(content) => {
+                            // Check if file is text-based
+                            let file_ext = std::path::Path::new(&safe_path)
+                                .extension()
+                                .and_then(|ext| ext.to_str())
+                                .unwrap_or("")
+                                .to_lowercase();
+                            
+                            let is_text_file = matches!(file_ext.as_str(), 
+                                "txt" | "md" | "markdown" | "json" | "yaml" | "yml" | 
+                                "js" | "ts" | "html" | "css" | "scss" | "rs" | "py" | 
+                                "toml" | "env" | "log" | "cfg" | "conf" | "xml"
+                            );
+                            
+                            if is_text_file {
+                                let response_data = serde_json::json!({
+                                    "content": content,
+                                    "file_type": file_ext,
+                                    "is_editable": matches!(file_ext.as_str(), 
+                                        "txt" | "md" | "markdown" | "json" | "yaml" | "yml"
+                                    )
+                                });
+                                Ok(HttpResponse::Ok().json(ApiResponse::success(response_data)))
+                            } else {
+                                Ok(HttpResponse::BadRequest().json(
+                                    ApiResponse::<()>::error("File type not supported for viewing")
+                                ))
+                            }
+                        }
+                        Err(e) => {
+                            if e.kind() == std::io::ErrorKind::InvalidData {
+                                Ok(HttpResponse::BadRequest().json(
+                                    ApiResponse::<()>::error("File contains non-text data")
+                                ))
+                            } else {
+                                Ok(HttpResponse::NotFound().json(
+                                    ApiResponse::<()>::error(&format!("Could not read file: {}", e))
+                                ))
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    Ok(HttpResponse::BadRequest().json(
+                        ApiResponse::<()>::error(&format!("Invalid path: {}", e))
+                    ))
+                }
+            }
+        }
+        Err(response) => Ok(response),
+    }
+}
 
-
+/// Save file contents
+pub async fn save_file_content(
+    req: HttpRequest,
+    path: web::Path<String>,
+    body: web::Json<FileContentRequest>,
+    app_config: web::Data<AppConfig>,
+) -> Result<HttpResponse> {
+    // Check admin authentication
+    match check_admin_auth(&req) {
+        Ok(_) => {
+            let file_path = path.into_inner();
+            
+            match create_safe_file_path(&app_config.content_path, &file_path) {
+                Ok(safe_path) => {
+                    // Check if file is editable
+                    let file_ext = std::path::Path::new(&safe_path)
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .unwrap_or("")
+                        .to_lowercase();
+                    
+                    let is_editable = matches!(file_ext.as_str(), 
+                        "txt" | "md" | "markdown" | "json" | "yaml" | "yml"
+                    );
+                    
+                    if !is_editable {
+                        return Ok(HttpResponse::BadRequest().json(
+                            ApiResponse::<()>::error("File type not editable")
+                        ));
+                    }
+                    
+                    match std::fs::write(&safe_path, &body.content) {
+                        Ok(_) => {
+                            Ok(HttpResponse::Ok().json(ApiResponse::success("File saved successfully")))
+                        }
+                        Err(e) => {
+                            Ok(HttpResponse::InternalServerError().json(
+                                ApiResponse::<()>::error(&format!("Could not save file: {}", e))
+                            ))
+                        }
+                    }
+                }
+                Err(e) => {
+                    Ok(HttpResponse::BadRequest().json(
+                        ApiResponse::<()>::error(&format!("Invalid path: {}", e))
+                    ))
+                }
+            }
+        }
+        Err(response) => Ok(response),
+    }
+}

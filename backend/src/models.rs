@@ -147,3 +147,8 @@ pub struct FileMoveRequest {
     pub destination_path: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileContentRequest {
+    pub content: String,
+}
+
