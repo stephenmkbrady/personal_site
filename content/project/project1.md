@@ -3,7 +3,6 @@ title: "Portfolio Website"
 date: "2024-01-15"
 tags: ["rust", "actix-web", "portfolio", "api"]
 description: "A modern portfolio website built with Rust backend and vanilla JavaScript frontend"
-image: "/notfeature-placeholder.jpg"
 feature: false
 ---
 

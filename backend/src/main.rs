@@ -72,6 +72,8 @@ async fn main() -> std::io::Result<()> {
                                     .route("/list/{path:.*}", web::get().to(list_files))
                                     .route("/upload/{path:.*}", web::post().to(upload_file))
                                     .route("/download/{path:.*}", web::get().to(download_file))
+                                    .route("/read/{path:.*}", web::get().to(read_file_content))
+                                    .route("/save/{path:.*}", web::post().to(save_file_content))
                                     .route("/delete", web::post().to(delete_file))
                                     .route("/rename", web::post().to(rename_file))
                                     .route("/move", web::post().to(move_file))

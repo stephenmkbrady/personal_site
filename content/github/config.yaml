@@ -3,29 +3,31 @@ repositories:
     repo: "boo_bot"
     display_name: "E2E Matrix chat agent"
     feature: true
-    image: "/notfeature-placeholder.jpg"
   - owner: "stephenmkbrady"
     repo: "minsc_saga"
     display_name: "PIN protected Matrix Widget interface to boo_memories server"
     feature: true
-    image: "/blog-placeholder.jpg"
   - owner: "stephenmkbrady"
     repo: "boo_memories"
     display_name: "Secure SQLite/Postgresql database API server"
     feature: true
-    image: "/notfeature-placeholder.jpg"
   - owner: "stephenmkbrady"
     repo: "django_matrix_client_basic"
     display_name: "Minimalistic Matrix chat client for connecting over low powered devices."
     feature: false
-    image: "/notfeature-placeholder.jpg"
   - owner: "stephenmkbrady"
     repo: "hexo-tag-html5"
     display_name: "Hexo static site HMTL5 tag."
     feature: false
-    image: "/notfeature-placeholder.jpg"
   - owner: "stephenmkbrady"
     repo: "gmc_geiger_muller_counter"
     display_name: "GMC Geiger Muller Counter Interface"
     feature: false
-    image: "/notfeature-placeholder.jpg"
+  - owner: "stephenmkbrady"
+    repo: "portfolio_website"
+    display_name: "Portfolio Website"
+    feature: false
+  - owner: "stephenmkbrady"
+    repo: "cli_tool"
+    display_name: "Rust CLI Tool"
+    feature: false

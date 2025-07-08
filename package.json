@@ -1,4 +1,10 @@
 {
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test tests/api_tests/",
+    "test:ui": "playwright test tests/ --ignore=tests/api_tests/",
+    "test:file-viewer": "playwright test test-file-viewer-fixed.js"
+  },
   "devDependencies": {
     "@playwright/test": "^1.53.2"
   }

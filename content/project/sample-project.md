@@ -3,7 +3,6 @@ title: "Sample Project"
 date: "2024-01-15"
 tags: ["rust", "web", "portfolio"]
 description: "A sample project to demonstrate the portfolio functionality"
-image: "/project-placeholder.jpg"
 feature: true
 ---
 
