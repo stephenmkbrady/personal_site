@@ -356,3 +356,344 @@ fn convert_github_image_url(src: &str, owner: &str, repo: &str) -> String {
     // Default case - treat as relative to repo root
     format!("https://raw.githubusercontent.com/{}/{}/main/{}", owner, repo, src)
 }
+
+// Authentication utilities
+use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey};
+use chrono::{Utc, Duration};
+use actix_web::{HttpRequest, HttpResponse, Result, dev::ServiceRequest, dev::ServiceResponse, Error};
+use actix_web::dev::{forward_ready, Service, Transform};
+use futures_util::future::LocalBoxFuture;
+use std::future::{ready, Ready};
+use std::rc::Rc;
+
+/// JWT Secret key - in production this should be from environment variable
+const JWT_SECRET: &[u8] = b"your_super_secret_jwt_key_change_this_in_production";
+
+/// Token expiration time (24 hours)
+const TOKEN_EXPIRATION_HOURS: i64 = 24;
+
+/// Create a JWT token for an authenticated user
+pub fn create_jwt_token(username: &str, role: &str) -> Result<(String, chrono::DateTime<Utc>), Box<dyn std::error::Error>> {
+    let now = Utc::now();
+    let expires_at = now + Duration::hours(TOKEN_EXPIRATION_HOURS);
+    
+    let claims = Claims {
+        sub: username.to_owned(),
+        exp: expires_at.timestamp(),
+        iat: now.timestamp(),
+        role: role.to_owned(),
+    };
+    
+    let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(JWT_SECRET))?;
+    Ok((token, expires_at))
+}
+
+/// Verify and decode a JWT token
+pub fn verify_jwt_token(token: &str) -> Result<Claims, Box<dyn std::error::Error>> {
+    let validation = Validation::new(Algorithm::HS256);
+    let token_data = decode::<Claims>(token, &DecodingKey::from_secret(JWT_SECRET), &validation)?;
+    
+    // Check if token is expired
+    let now = Utc::now().timestamp();
+    if token_data.claims.exp < now {
+        return Err("Token expired".into());
+    }
+    
+    Ok(token_data.claims)
+}
+
+/// Hash a password using simple hash (for demo - use proper bcrypt in production)
+pub fn hash_password(password: &str) -> String {
+    // Simple hash for demo - in production use proper bcrypt
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    
+    let mut hasher = DefaultHasher::new();
+    password.hash(&mut hasher);
+    format!("hash_{}", hasher.finish())
+}
+
+/// Verify a password against its hash
+pub fn verify_password(password: &str, hash: &str) -> bool {
+    hash_password(password) == hash
+}
+
+/// Get admin user credentials from environment variables (with fallback for development)
+pub fn get_admin_user() -> AuthUser {
+    let username = std::env::var("ADMIN_USERNAME").unwrap_or_else(|_| "admin".to_string());
+    let password = std::env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "admin123".to_string());
+    
+    AuthUser {
+        username,
+        password_hash: hash_password(&password),
+        role: "admin".to_string(),
+    }
+}
+
+/// Extract and verify JWT token from request
+pub fn extract_token_from_request(req: &HttpRequest) -> Result<Claims, String> {
+    let auth_header = req.headers().get("authorization");
+    
+    if let Some(auth_value) = auth_header {
+        if let Ok(auth_str) = auth_value.to_str() {
+            if auth_str.starts_with("Bearer ") {
+                let token = &auth_str[7..]; // Remove "Bearer " prefix
+                
+                match verify_jwt_token(token) {
+                    Ok(claims) => return Ok(claims),
+                    Err(e) => return Err(format!("Invalid token: {}", e)),
+                }
+            }
+        }
+    }
+    
+    Err("Missing or invalid authorization header".to_string())
+}
+
+/// Helper function to check admin authentication in handlers
+pub fn check_admin_auth(req: &HttpRequest) -> Result<Claims, HttpResponse> {
+    match extract_token_from_request(req) {
+        Ok(claims) => {
+            if claims.role == "admin" {
+                Ok(claims)
+            } else {
+                Err(HttpResponse::Forbidden().json(
+                    ApiResponse::<()>::error("Insufficient permissions")
+                ))
+            }
+        }
+        Err(_) => {
+            Err(HttpResponse::Unauthorized().json(
+                ApiResponse::<()>::error("Authentication required")
+            ))
+        }
+    }
+}
+
+// File Management utilities
+
+/// Create safe file path for file operations (extends content path validation)
+pub fn create_safe_file_path(base_path: &str, relative_path: &str) -> Result<String, ValidationError> {
+    // Validate the relative path
+    if relative_path.contains("..") || relative_path.contains('\0') {
+        return Err(ValidationError::PathTraversal("Path contains dangerous characters".to_string()));
+    }
+    
+    // Remove leading slash if present
+    let clean_path = relative_path.trim_start_matches('/');
+    
+    let full_path = if clean_path.is_empty() {
+        base_path.to_string()
+    } else {
+        format!("{}/{}", base_path, clean_path)
+    };
+    
+    // Final safety check: ensure the resolved path stays within base directory
+    let canonical_base = std::path::Path::new(base_path).canonicalize()
+        .map_err(|_| ValidationError::PathTraversal("Invalid base path".to_string()))?;
+    
+    if let Ok(canonical_target) = std::path::Path::new(&full_path).canonicalize() {
+        if !canonical_target.starts_with(&canonical_base) {
+            return Err(ValidationError::PathTraversal("Path escapes base directory".to_string()));
+        }
+    }
+    
+    Ok(full_path)
+}
+
+/// List directory contents
+pub fn list_directory_contents(dir_path: &str) -> Result<DirectoryContents, Box<dyn std::error::Error>> {
+    use std::fs;
+    use std::path::Path;
+    
+    let path = Path::new(dir_path);
+    if !path.exists() {
+        return Err("Directory does not exist".into());
+    }
+    
+    if !path.is_dir() {
+        return Err("Path is not a directory".into());
+    }
+    
+    let mut items = Vec::new();
+    let entries = fs::read_dir(path)?;
+    
+    for entry in entries {
+        let entry = entry?;
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        let file_path = entry.path();
+        let metadata = entry.metadata()?;
+        
+        // Calculate relative path from base
+        let relative_path = file_path.strip_prefix(path)
+            .unwrap_or(&file_path)
+            .to_string_lossy()
+            .to_string();
+        
+        let file_item = FileItem {
+            name: file_name,
+            path: relative_path,
+            is_directory: metadata.is_dir(),
+            size: if metadata.is_file() { Some(metadata.len()) } else { None },
+            modified: metadata.modified()
+                .ok()
+                .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|duration| {
+                    let datetime: chrono::DateTime<chrono::Utc> = chrono::DateTime::from_timestamp(duration.as_secs() as i64, 0).unwrap_or_default();
+                    datetime.format("%Y-%m-%d %H:%M:%S").to_string()
+                }),
+        };
+        
+        items.push(file_item);
+    }
+    
+    // Sort items: directories first, then files, both alphabetically
+    items.sort_by(|a, b| {
+        match (a.is_directory, b.is_directory) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => a.name.cmp(&b.name),
+        }
+    });
+    
+    // Determine parent path
+    let parent_path = path.parent()
+        .and_then(|p| p.to_str())
+        .map(|s| s.to_string());
+    
+    Ok(DirectoryContents {
+        current_path: dir_path.to_string(),
+        parent_path,
+        items,
+    })
+}
+
+/// Handle file upload from multipart
+pub async fn handle_file_upload(
+    payload: &mut actix_multipart::Multipart,
+    destination_dir: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    use futures_util::TryStreamExt;
+    use std::io::Write;
+    
+    let mut uploaded_files = Vec::new();
+    
+    while let Some(mut field) = payload.try_next().await? {
+        let content_disposition = field.content_disposition();
+        
+        if let Some(filename) = content_disposition.get_filename() {
+            let filename_owned = filename.to_string();
+            let filepath = std::path::Path::new(destination_dir).join(&filename_owned);
+            
+            // Create destination directory if it doesn't exist
+            if let Some(parent) = filepath.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            
+            // Create file and write chunks
+            let mut file = std::fs::File::create(&filepath)?;
+            while let Some(chunk) = field.try_next().await? {
+                file.write_all(&chunk)?;
+            }
+            
+            uploaded_files.push(filename_owned);
+        }
+    }
+    
+    if uploaded_files.is_empty() {
+        return Err("No files found in upload".into());
+    }
+    
+    if uploaded_files.len() == 1 {
+        Ok(uploaded_files[0].clone())
+    } else {
+        Ok(format!("{} files", uploaded_files.len()))
+    }
+}
+
+/// Delete file or folder
+pub fn delete_file_or_folder(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let path = std::path::Path::new(path);
+    
+    if !path.exists() {
+        return Err("File or folder does not exist".into());
+    }
+    
+    if path.is_dir() {
+        std::fs::remove_dir_all(path)?;
+    } else {
+        std::fs::remove_file(path)?;
+    }
+    
+    Ok(())
+}
+
+/// Rename file or folder
+pub fn rename_file_or_folder(old_path: &str, new_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let old = std::path::Path::new(old_path);
+    let new = std::path::Path::new(new_path);
+    
+    if !old.exists() {
+        return Err("Source file or folder does not exist".into());
+    }
+    
+    if new.exists() {
+        return Err("Destination already exists".into());
+    }
+    
+    std::fs::rename(old, new)?;
+    Ok(())
+}
+
+/// Move file or folder
+pub fn move_file_or_folder(source_path: &str, destination_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let source = std::path::Path::new(source_path);
+    let destination = std::path::Path::new(destination_path);
+    
+    if !source.exists() {
+        return Err("Source file or folder does not exist".into());
+    }
+    
+    // Create destination directory if it doesn't exist
+    if let Some(parent) = destination.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    
+    if destination.exists() {
+        return Err("Destination already exists".into());
+    }
+    
+    std::fs::rename(source, destination)?;
+    Ok(())
+}
+
+/// Create directory
+pub fn create_directory(path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    std::fs::create_dir_all(path)?;
+    Ok(())
+}
+
+/// Serve file for download
+pub fn serve_file_download(file_path: &str) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+    use std::fs::File;
+    use std::io::Read;
+    
+    let path = std::path::Path::new(file_path);
+    
+    if !path.exists() || !path.is_file() {
+        return Err("File does not exist".into());
+    }
+    
+    let mut file = File::open(path)?;
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents)?;
+    
+    let filename = path.file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("download");
+    
+    Ok(HttpResponse::Ok()
+        .append_header(("Content-Disposition", format!("attachment; filename=\"{}\"", filename)))
+        .append_header(("Content-Type", "application/octet-stream"))
+        .body(contents))
+}

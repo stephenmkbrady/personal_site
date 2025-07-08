@@ -85,3 +85,65 @@ impl<T> ApiResponse<T> {
     }
 }
 
+// Authentication models
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoginRequest {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoginResponse {
+    pub token: String,
+    pub expires_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub sub: String,  // username
+    pub exp: i64,     // expiration timestamp
+    pub iat: i64,     // issued at timestamp
+    pub role: String, // user role (admin)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AuthUser {
+    pub username: String,
+    pub password_hash: String,
+    pub role: String,
+}
+
+// File Management models
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileItem {
+    pub name: String,
+    pub path: String,
+    pub is_directory: bool,
+    pub size: Option<u64>,
+    pub modified: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DirectoryContents {
+    pub current_path: String,
+    pub parent_path: Option<String>,
+    pub items: Vec<FileItem>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileOperationRequest {
+    pub path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileRenameRequest {
+    pub old_path: String,
+    pub new_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileMoveRequest {
+    pub source_path: String,
+    pub destination_path: String,
+}
+

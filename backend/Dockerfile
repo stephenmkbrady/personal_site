@@ -27,8 +27,8 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app user
-RUN useradd -m -u 1001 appuser
+# Create app user with UID 1000 to match host user
+RUN useradd -m -u 1000 appuser
 
 # Create app directory
 WORKDIR /app
